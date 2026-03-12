@@ -42,7 +42,7 @@ function Dam({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) {
         />
       </mesh>
       {/* Label */}
-      <Text position={[0, 3.5, 1]} fontSize={0.4} color="#FFD700" font="/fonts/fredoka.woff">
+      <Text position={[0, 3.5, 1]} fontSize={0.4} color="#FFD700">
         {isOpen ? '✓ Gate Open' : '👆 Tap to Open Gate'}
       </Text>
     </group>
