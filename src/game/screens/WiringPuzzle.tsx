@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useGame } from '../GameContext';
-import { Lightbulb, Fan, ToggleRight, Plug, GripVertical } from 'lucide-react';
+import { Lightbulb, Fan, ToggleRight, Plug, GripVertical, Tv, Refrigerator } from 'lucide-react';
 
 interface ComponentItem {
   id: string;
@@ -40,7 +40,7 @@ const dropZones: Record<string, { label: string; room: string; x: number; y: num
 };
 
 export default function WiringPuzzle() {
-  const { placedComponents, placeComponent, addStar, showElectroGuide, nextLevel } = useGame();
+  const { placedComponents, placeComponent, addStar, addPoints, showVoltGuide, nextLevel } = useGame();
   const [dragging, setDragging] = useState<string | null>(null);
   const [justPlaced, setJustPlaced] = useState<string | null>(null);
 
@@ -56,35 +56,31 @@ export default function WiringPuzzle() {
     if (dragging === zoneId && !placedComponents.includes(zoneId)) {
       placeComponent(zoneId);
       setJustPlaced(zoneId);
+      addPoints(10);
       setTimeout(() => setJustPlaced(null), 800);
-      
+
       const remaining = allComponents.filter(c => !placedComponents.includes(c.id) && c.id !== zoneId).length;
       if (remaining === 0) {
         addStar();
-        showElectroGuide("⭐ All components installed! Now let's connect the wires!");
+        showVoltGuide("⭐ All components installed! Each needs Phase, Neutral, and Earth wires. Now connect them!");
       } else if (remaining <= 3) {
-        showElectroGuide(`Almost there! ${remaining} components left!`);
-      } else {
-        showElectroGuide("Great job! Keep placing components!");
+        showVoltGuide(`Almost there! ${remaining} components left!`);
       }
     } else if (dragging && dragging !== zoneId) {
-      showElectroGuide("Hmm, that component goes somewhere else! Try again.");
+      showVoltGuide("⚠️ Wrong placement! That component goes somewhere else. Check the room labels!");
     }
     setDragging(null);
-  }, [dragging, placedComponents, placeComponent, addStar, showElectroGuide]);
+  }, [dragging, placedComponents, placeComponent, addStar, addPoints, showVoltGuide]);
 
   return (
     <div className="fixed inset-0 z-40 bg-background flex">
-      {/* House layout area */}
       <div className="flex-1 relative p-6">
         <div className="absolute top-6 left-6 z-10 game-panel py-3 px-5">
-          <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 4</p>
-          <p className="font-fredoka-one text-xl text-foreground">Wiring Puzzle</p>
+          <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 6 of 8</p>
+          <p className="font-fredoka-one text-xl text-foreground">Home Wiring Simulator</p>
         </div>
 
-        {/* Room outlines */}
         <div className="absolute inset-6 top-20">
-          {/* Room labels */}
           <div className="absolute left-[5%] top-0 w-[35%] h-full border-2 border-dashed border-accent/30 rounded-2xl p-4">
             <span className="font-fredoka-one text-accent text-lg">🛋 Hall</span>
           </div>
@@ -95,19 +91,18 @@ export default function WiringPuzzle() {
             <span className="font-fredoka-one text-accent text-lg">🛏 Bedroom</span>
           </div>
 
-          {/* Drop zones */}
           {Object.entries(dropZones).map(([id, zone]) => {
             const placed = placedComponents.includes(id);
             const comp = allComponents.find(c => c.id === id);
             const Icon = comp?.icon || Lightbulb;
-            
+
             return (
               <div
                 key={id}
                 className={`absolute w-16 h-16 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
-                  placed 
-                    ? justPlaced === id 
-                      ? 'bg-primary/30 glow-primary scale-110' 
+                  placed
+                    ? justPlaced === id
+                      ? 'bg-primary/30 glow-primary scale-110'
                       : 'bg-accent/20 border-2 border-accent'
                     : 'bg-muted border-2 border-dashed border-muted-foreground/30 animate-pulse-glow'
                 }`}
@@ -122,12 +117,18 @@ export default function WiringPuzzle() {
             );
           })}
         </div>
+
+        {/* Grounding info */}
+        <div className="absolute bottom-6 left-6 game-panel py-2 px-4 max-w-xs">
+          <p className="font-fredoka text-sm text-muted-foreground">
+            🔬 <strong>Why grounding?</strong> Earth wire provides a safe path for fault current, preventing electric shock!
+          </p>
+        </div>
       </div>
 
-      {/* Toolbox */}
       <div className="w-52 bg-card border-l border-border p-4 overflow-y-auto">
         <h3 className="font-fredoka-one text-lg text-foreground mb-4">🧰 Toolbox</h3>
-        
+
         {rooms.map(room => (
           <div key={room} className="mb-4">
             <p className="font-fredoka text-sm text-muted-foreground mb-2">{room}</p>
@@ -141,10 +142,10 @@ export default function WiringPuzzle() {
                     <div
                       key={comp.id}
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-grab transition-all ${
-                        placed 
-                          ? 'opacity-40 cursor-default' 
-                          : dragging === comp.id 
-                            ? 'bg-accent/20 scale-105 glow-accent' 
+                        placed
+                          ? 'opacity-40 cursor-default'
+                          : dragging === comp.id
+                            ? 'bg-accent/20 scale-105 glow-accent'
                             : 'bg-muted hover:bg-accent/10'
                       }`}
                       draggable={!placed}
@@ -167,7 +168,7 @@ export default function WiringPuzzle() {
             {placedComponents.length}/{allComponents.length} placed
           </p>
           <div className="w-full h-2 bg-background rounded-full mt-2">
-            <div 
+            <div
               className="h-full bg-accent rounded-full transition-all duration-500"
               style={{ width: `${(placedComponents.length / allComponents.length) * 100}%` }}
             />
@@ -175,11 +176,10 @@ export default function WiringPuzzle() {
         </div>
       </div>
 
-      {/* Dragging indicator */}
       {dragging && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 game-panel py-2 px-4">
           <p className="font-fredoka text-foreground">
-            📦 Now click the matching drop zone for "{allComponents.find(c => c.id === dragging)?.name}"
+            📦 Click the matching drop zone for "{allComponents.find(c => c.id === dragging)?.name}"
           </p>
         </div>
       )}

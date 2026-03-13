@@ -1,6 +1,6 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Environment } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '../GameContext';
 
@@ -22,29 +22,23 @@ function Water() {
 function Dam({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) {
   return (
     <group position={[0, 0, 0]}>
-      {/* Dam wall */}
       <mesh position={[0, 1, 0]}>
         <boxGeometry args={[8, 4, 1.5]} />
         <meshStandardMaterial color="#8B8B8B" roughness={0.8} />
       </mesh>
-      {/* Dam gate */}
       <mesh
         position={[0, isOpen ? 3.5 : 0.5, 0.8]}
         onClick={onClick}
-        onPointerOver={(e) => { (e.object as THREE.Mesh).scale.set(1.05, 1.05, 1.05); document.body.style.cursor = 'pointer'; }}
-        onPointerOut={(e) => { (e.object as THREE.Mesh).scale.set(1, 1, 1); document.body.style.cursor = 'default'; }}
+        onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
       >
         <boxGeometry args={[2, 2, 0.3]} />
-        <meshStandardMaterial 
-          color={isOpen ? '#4CAF50' : '#FFD700'} 
-          emissive={isOpen ? '#4CAF50' : '#FFD700'} 
-          emissiveIntensity={0.3} 
+        <meshStandardMaterial
+          color={isOpen ? '#4CAF50' : '#FFD700'}
+          emissive={isOpen ? '#4CAF50' : '#FFD700'}
+          emissiveIntensity={0.3}
         />
       </mesh>
-      {/* Label */}
-      <Text position={[0, 3.5, 1]} fontSize={0.4} color="#FFD700">
-        {isOpen ? '✓ Gate Open' : '👆 Tap to Open Gate'}
-      </Text>
     </group>
   );
 }
@@ -58,12 +52,10 @@ function Turbine({ spinning }: { spinning: boolean }) {
   });
   return (
     <group position={[-5, 0, 0]}>
-      {/* Housing */}
-      <mesh position={[0, 0, 0]}>
+      <mesh>
         <cylinderGeometry args={[1.5, 1.5, 0.5, 32]} />
         <meshStandardMaterial color="#607D8B" metalness={0.7} roughness={0.3} />
       </mesh>
-      {/* Blades */}
       <group ref={ref}>
         {[0, 1, 2, 3, 4, 5].map(i => (
           <mesh key={i} rotation={[0, 0, (i * Math.PI) / 3]} position={[0, 0, 0.3]}>
@@ -72,9 +64,6 @@ function Turbine({ spinning }: { spinning: boolean }) {
           </mesh>
         ))}
       </group>
-      <Text position={[0, 2, 0]} fontSize={0.3} color="#00BCD4">
-        Turbine
-      </Text>
     </group>
   );
 }
@@ -91,17 +80,14 @@ function Generator({ active }: { active: boolean }) {
     <group position={[-8, 0, 0]}>
       <mesh ref={ref}>
         <cylinderGeometry args={[1, 1, 2, 32]} />
-        <meshStandardMaterial 
-          color="#455A64" 
-          metalness={0.8} 
+        <meshStandardMaterial
+          color="#455A64"
+          metalness={0.8}
           roughness={0.2}
           emissive={active ? '#00BCD4' : '#000'}
           emissiveIntensity={active ? 0.3 : 0}
         />
       </mesh>
-      <Text position={[0, 2, 0]} fontSize={0.3} color={active ? '#00BCD4' : '#999'}>
-        Generator
-      </Text>
     </group>
   );
 }
@@ -151,64 +137,27 @@ function Penstock({ active }: { active: boolean }) {
   );
 }
 
-function EnergyParticles({ active }: { active: boolean }) {
-  const ref = useRef<THREE.Points>(null!);
-  const count = 50;
-  const positions = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = -8 + Math.random() * 3;
-      pos[i * 3 + 1] = Math.random() * 3;
-      pos[i * 3 + 2] = Math.random() * 2 - 1;
-    }
-    return pos;
-  }, []);
-
-  useFrame((_, delta) => {
-    if (!active || !ref.current) return;
-    const pos = ref.current.geometry.attributes.position.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      pos[i * 3 + 1] += delta * 2;
-      if (pos[i * 3 + 1] > 4) {
-        pos[i * 3 + 1] = 0;
-        pos[i * 3] = -8 + Math.random() * 3;
-      }
-    }
-    ref.current.geometry.attributes.position.needsUpdate = true;
-  });
-
-  if (!active) return null;
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} count={count} />
-      </bufferGeometry>
-      <pointsMaterial size={0.2} color="#FFD700" transparent opacity={0.9} />
-    </points>
-  );
-}
-
 function HydroSceneContent() {
-  const { hydroStep, setHydroStep, addStar, showElectroGuide, nextLevel } = useGame();
+  const { hydroStep, setHydroStep, addStar, addPoints, showVoltGuide } = useGame();
 
   const handleDamClick = () => {
     if (hydroStep === 'idle') {
       setHydroStep('dam-open');
-      showElectroGuide("Great! The dam gate is open! Watch the water flow!");
+      showVoltGuide("Great! The dam gate is open! Water's kinetic energy will push the turbine!");
       setTimeout(() => {
         setHydroStep('water-flowing');
-        showElectroGuide("Water pushes the turbine!");
+        showVoltGuide("Water flows through the penstock — its potential energy converts to kinetic energy!");
         setTimeout(() => {
           setHydroStep('turbine-spinning');
-          showElectroGuide("The turbine spins the generator!");
+          showVoltGuide("The turbine's mechanical rotation drives the generator shaft!");
           setTimeout(() => {
             setHydroStep('generating');
-            showElectroGuide("The generator produces electricity! ⚡");
+            showVoltGuide("Electromagnetic induction! The rotating magnetic field generates AC electricity! ⚡");
             setTimeout(() => {
               setHydroStep('complete');
               addStar();
-              showElectroGuide("⭐ Power generated! Let's send it to the city!");
+              addPoints(100);
+              showVoltGuide("⭐ Electricity generated! Now let's see how the generator works inside!");
             }, 1500);
           }, 1500);
         }, 1500);
@@ -221,22 +170,19 @@ function HydroSceneContent() {
       <ambientLight intensity={0.4} />
       <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
       <pointLight position={[-8, 3, 0]} intensity={hydroStep === 'generating' || hydroStep === 'complete' ? 2 : 0} color="#00BCD4" />
-      
+
       <Water />
       <Dam onClick={handleDamClick} isOpen={hydroStep !== 'idle'} />
       <Penstock active={hydroStep !== 'idle'} />
       <WaterFlow active={['water-flowing', 'turbine-spinning', 'generating', 'complete'].includes(hydroStep)} />
       <Turbine spinning={['turbine-spinning', 'generating', 'complete'].includes(hydroStep)} />
       <Generator active={['generating', 'complete'].includes(hydroStep)} />
-      <EnergyParticles active={['generating', 'complete'].includes(hydroStep)} />
-      
-      {/* Ground */}
+
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]}>
         <planeGeometry args={[30, 30]} />
         <meshStandardMaterial color="#4a7c59" roughness={0.9} />
       </mesh>
 
-      {/* Mountains */}
       {[-6, 6].map((x, i) => (
         <mesh key={i} position={[x, 0, -8]}>
           <coneGeometry args={[4, 8, 4]} />
@@ -244,13 +190,7 @@ function HydroSceneContent() {
         </mesh>
       ))}
 
-      <OrbitControls 
-        enablePan={false}
-        minDistance={5}
-        maxDistance={20}
-        maxPolarAngle={Math.PI / 2.2}
-        target={[-3, 0, 0]}
-      />
+      <OrbitControls enablePan={false} minDistance={5} maxDistance={20} maxPolarAngle={Math.PI / 2.2} target={[-3, 0, 0]} />
       <Environment preset="sunset" />
     </>
   );
@@ -265,29 +205,26 @@ export default function HydroScene() {
         <HydroSceneContent />
       </Canvas>
 
-      {/* Level info */}
       <div className="fixed top-6 left-6 z-50 game-panel py-3 px-5">
-        <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 1</p>
-        <p className="font-fredoka-one text-xl text-foreground">Hydroelectric Power Plant</p>
+        <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 1 of 8</p>
+        <p className="font-fredoka-one text-xl text-foreground">Hydroelectric Dam</p>
       </div>
 
-      {/* Step indicators */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 game-panel py-2 px-4">
         <p className="font-fredoka text-foreground text-center">
           {hydroStep === 'idle' && '👆 Tap the golden gate to open the dam!'}
           {hydroStep === 'dam-open' && '💧 Dam gate opening...'}
           {hydroStep === 'water-flowing' && '💧 Water flowing through the penstock!'}
           {hydroStep === 'turbine-spinning' && '⚙️ Turbine is spinning!'}
-          {hydroStep === 'generating' && '⚡ Generating electricity!'}
+          {hydroStep === 'generating' && '⚡ Electromagnetic induction — generating AC electricity!'}
           {hydroStep === 'complete' && '⭐ Power generated!'}
         </p>
       </div>
 
-      {/* Next level button */}
       {hydroStep === 'complete' && (
         <div className="fixed bottom-6 right-6 z-50">
           <button onClick={nextLevel} className="game-btn game-btn-accent text-xl animate-float">
-            Send Power to City →
+            Explore the Generator →
           </button>
         </div>
       )}
