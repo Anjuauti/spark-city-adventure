@@ -1,15 +1,17 @@
 import { GameProvider, useGame } from './GameContext';
-import ElectroGuide from './ElectroGuide';
+import VoltGuide from './VoltGuide';
 import StarCounter from './StarCounter';
 import AttractScreen from './screens/AttractScreen';
 import InstructionsScreen from './screens/InstructionsScreen';
 import HydroScene from './scenes/HydroScene';
+import GeneratorScene from './scenes/GeneratorScene';
 import TransmissionScene from './scenes/TransmissionScene';
-import HouseScene from './scenes/HouseScene';
+import SubstationScene from './scenes/SubstationScene';
+import HomeEntryScene from './scenes/HomeEntryScene';
 import WiringPuzzle from './screens/WiringPuzzle';
 import WireConnect from './screens/WireConnect';
-import MagicMoment from './screens/MagicMoment';
-import ExploreMode from './screens/ExploreMode';
+import ConsumptionScreen from './screens/ConsumptionScreen';
+import SmartHomeScreen from './screens/SmartHomeScreen';
 import CelebrationScreen from './screens/CelebrationScreen';
 
 function GameContent() {
@@ -20,15 +22,16 @@ function GameContent() {
       {currentLevel === 'attract' && <AttractScreen />}
       {currentLevel === 'instructions' && <InstructionsScreen />}
       {currentLevel === 'level1-hydro' && <HydroScene />}
-      {currentLevel === 'level2-transmission' && <TransmissionScene />}
-      {currentLevel === 'level3-house' && <HouseScene />}
-      {currentLevel === 'level4-wiring' && <WiringPuzzle />}
-      {currentLevel === 'level5-connect' && <WireConnect />}
-      {currentLevel === 'magic-moment' && <MagicMoment />}
-      {currentLevel === 'explore' && <ExploreMode />}
+      {currentLevel === 'level2-generator' && <GeneratorScene />}
+      {currentLevel === 'level3-transmission' && <TransmissionScene />}
+      {currentLevel === 'level4-substation' && <SubstationScene />}
+      {currentLevel === 'level5-home-entry' && <HomeEntryScene />}
+      {currentLevel === 'level6-wiring' && <WiringPuzzle />}
+      {currentLevel === 'level7-consumption' && <WireConnect />}
+      {currentLevel === 'level8-smart-home' && <ConsumptionScreen />}
       {currentLevel === 'celebration' && <CelebrationScreen />}
-      
-      <ElectroGuide />
+
+      <VoltGuide />
       <StarCounter />
     </div>
   );

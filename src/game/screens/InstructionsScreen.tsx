@@ -1,23 +1,24 @@
 import { useState } from 'react';
 import { useGame } from '../GameContext';
-import { MousePointer2, Move, Cable, ToggleRight, ChevronRight } from 'lucide-react';
+import { MousePointer2, Move, Cable, ToggleRight, ChevronRight, Gauge } from 'lucide-react';
 
 const instructions = [
-  { icon: MousePointer2, text: 'Follow glowing arrows to complete missions', color: 'text-accent' },
-  { icon: Move, text: 'Drag components to install them', color: 'text-primary' },
-  { icon: Cable, text: 'Connect wires using your mouse', color: 'text-wire-red' },
-  { icon: ToggleRight, text: 'Turn switches to power the house', color: 'text-accent' },
+  { icon: MousePointer2, text: 'Tap and interact with 3D machines', color: 'text-accent' },
+  { icon: Gauge, text: 'Adjust controls to maintain correct settings', color: 'text-primary' },
+  { icon: Move, text: 'Drag components to install them', color: 'text-accent' },
+  { icon: Cable, text: 'Connect wires to build circuits', color: 'text-destructive' },
+  { icon: ToggleRight, text: 'Switch appliances ON to power the city', color: 'text-primary' },
 ];
 
 export default function InstructionsScreen() {
-  const { setLevel, showElectroGuide } = useGame();
+  const { setLevel, showVoltGuide } = useGame();
   const [step, setStep] = useState(0);
 
   const handleNext = () => {
     if (step < instructions.length - 1) {
       setStep(step + 1);
     } else {
-      showElectroGuide("Hello! Our city needs electricity! Help me generate power from water and bring electricity to the house!");
+      showVoltGuide("Hello! Spark City lost power! Help me restore electricity from the hydroelectric dam all the way to homes!");
       setLevel('level1-hydro');
     }
   };
@@ -25,11 +26,14 @@ export default function InstructionsScreen() {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-gradient-to-br from-accent/5 via-background to-primary/5">
       <div className="game-panel max-w-lg w-full mx-4">
-        <h2 className="font-fredoka-one text-3xl text-foreground text-center mb-8">
-          Welcome to the Electricity Adventure!
+        <h2 className="font-fredoka-one text-3xl text-foreground text-center mb-2">
+          Welcome to Spark City!
         </h2>
+        <p className="font-fredoka text-muted-foreground text-center mb-8">
+          Learn how electricity travels from power plant to your home
+        </p>
 
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 mb-8">
           {instructions.map((inst, i) => {
             const Icon = inst.icon;
             return (
