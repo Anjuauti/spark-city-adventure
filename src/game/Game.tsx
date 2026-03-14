@@ -9,13 +9,16 @@ import TransmissionScene from './scenes/TransmissionScene';
 import SubstationScene from './scenes/SubstationScene';
 import HomeEntryScene from './scenes/HomeEntryScene';
 import WiringPuzzle from './screens/WiringPuzzle';
-import WireConnect from './screens/WireConnect';
 import ConsumptionScreen from './screens/ConsumptionScreen';
 import SmartHomeScreen from './screens/SmartHomeScreen';
 import CelebrationScreen from './screens/CelebrationScreen';
 
+// Levels that have Volt integrated in their side panel
+const INLINE_VOLT_LEVELS = ['level5-home-entry', 'level6-wiring', 'level7-consumption', 'level8-smart-home'];
+
 function GameContent() {
   const { currentLevel } = useGame();
+  const showFloatingVolt = !INLINE_VOLT_LEVELS.includes(currentLevel);
 
   return (
     <div className="w-full h-screen overflow-hidden bg-background relative">
@@ -27,11 +30,11 @@ function GameContent() {
       {currentLevel === 'level4-substation' && <SubstationScene />}
       {currentLevel === 'level5-home-entry' && <HomeEntryScene />}
       {currentLevel === 'level6-wiring' && <WiringPuzzle />}
-      {currentLevel === 'level7-consumption' && <WireConnect />}
-      {currentLevel === 'level8-smart-home' && <ConsumptionScreen />}
+      {currentLevel === 'level7-consumption' && <ConsumptionScreen />}
+      {currentLevel === 'level8-smart-home' && <SmartHomeScreen />}
       {currentLevel === 'celebration' && <CelebrationScreen />}
 
-      <VoltGuide />
+      {showFloatingVolt && <VoltGuide />}
       <StarCounter />
     </div>
   );

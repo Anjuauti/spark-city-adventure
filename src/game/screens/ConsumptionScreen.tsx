@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment } from '@react-three/drei';
 import { useGame, APPLIANCES } from '../GameContext';
-import { Zap, Gauge } from 'lucide-react';
+import HomeModel from '../models/HomeModel';
+import { Zap, Gauge, Bot } from 'lucide-react';
+
+const ALL_IDS = APPLIANCES.map(a => a.id);
 
 export default function ConsumptionScreen() {
-  const { applianceStates, toggleAppliance, totalConsumption, addStar, addPoints, showVoltGuide, nextLevel } = useGame();
+  const { applianceStates, toggleAppliance, totalConsumption, addStar, addPoints, showVoltGuide, nextLevel, voltMessage } = useGame();
   const [meterReading, setMeterReading] = useState(0);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [hasAwarded, setHasAwarded] = useState(false);
 
   const rooms = ['Hall', 'Kitchen', 'Bedroom'];
+
+  useEffect(() => {
+    showVoltGuide("Toggle appliances ON to see how much power each uses! Watch the energy meter count up.");
+  }, []);
 
   useEffect(() => {
     if (totalConsumption > 0) {
@@ -20,13 +29,11 @@ export default function ConsumptionScreen() {
 
   const handleToggle = (id: string) => {
     toggleAppliance(id);
-    setHasInteracted(true);
     const appliance = APPLIANCES.find(a => a.id === id);
     const willBeOn = !applianceStates[id];
-
     if (willBeOn && appliance) {
       addPoints(5);
-      showVoltGuide(`${appliance.name} uses ${appliance.watts}W of power! Watch the meter go up!`);
+      showVoltGuide(`${appliance.name} uses ${appliance.watts}W of power! Watch the meter go up.`);
     }
   };
 
@@ -34,98 +41,112 @@ export default function ConsumptionScreen() {
   const canProceed = activeCount >= 3;
 
   useEffect(() => {
-    if (canProceed && hasInteracted) {
+    if (canProceed && !hasAwarded) {
+      setHasAwarded(true);
       addStar();
-      showVoltGuide("⭐ Great! You see how each appliance adds to power consumption. Energy meters measure this in kWh!");
+      showVoltGuide("⭐ Great! Each appliance adds to power consumption. Energy meters measure this in kWh!");
     }
-  }, [canProceed]);
+  }, [canProceed, hasAwarded]);
 
   return (
-    <div className="fixed inset-0 z-40 bg-gradient-to-br from-background via-background to-primary/5 flex flex-col p-6 overflow-auto">
-      <div className="flex justify-between items-start mb-6">
-        <div className="game-panel py-3 px-5">
-          <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 7 of 8</p>
-          <p className="font-fredoka-one text-xl text-foreground">Power Consumption</p>
+    <div className="fixed inset-0 z-40 flex bg-background">
+      {/* 3D Scene */}
+      <div className="flex-1 relative">
+        <Canvas shadows camera={{ position: [8, 6, 10], fov: 45 }}>
+          <HomeModel
+            placedAppliances={ALL_IDS}
+            applianceStates={applianceStates}
+            showMCB
+            mcbActive
+            showInteriorFlow={totalConsumption > 0}
+          />
+          <OrbitControls
+            enablePan={false}
+            minDistance={8}
+            maxDistance={18}
+            maxPolarAngle={Math.PI / 2.3}
+            target={[0, 1.2, 0]}
+          />
+          <Environment preset="apartment" />
+        </Canvas>
+
+        <div className="absolute top-3 left-3 z-10 game-panel py-2 px-4">
+          <p className="font-fredoka-one text-xs text-accent uppercase tracking-wider">Level 7 of 8</p>
+          <p className="font-fredoka-one text-base text-foreground">Power Consumption</p>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="w-72 bg-card border-l border-border flex flex-col overflow-y-auto">
+        {/* Volt */}
+        <div className="p-3 border-b border-border bg-accent/5">
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5">
+              <Bot className="w-4 h-4 text-accent" />
+            </div>
+            <p className="font-fredoka text-xs text-foreground leading-relaxed">{voltMessage || "Toggle appliances!"}</p>
+          </div>
         </div>
 
         {/* Energy meter */}
-        <div className="game-panel py-3 px-5 text-center">
+        <div className="p-3 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2 mb-1">
-            <Gauge className="w-5 h-5 text-accent" />
-            <span className="font-fredoka-one text-sm text-muted-foreground">Energy Meter</span>
+            <Gauge className="w-4 h-4 text-accent" />
+            <span className="font-fredoka-one text-xs text-muted-foreground">Energy Meter</span>
           </div>
-          <p className="font-fredoka-one text-3xl text-foreground">{meterReading.toFixed(3)} <span className="text-sm text-muted-foreground">kWh</span></p>
+          <p className="font-fredoka-one text-xl text-foreground">{meterReading.toFixed(3)} <span className="text-[10px] text-muted-foreground">kWh</span></p>
           <div className="flex items-center gap-1 mt-1">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="font-fredoka text-sm text-primary">{totalConsumption}W total</span>
+            <Zap className="w-3 h-3 text-primary" />
+            <span className="font-fredoka text-xs text-primary">{totalConsumption}W total</span>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-4 flex-1">
-        {rooms.map(room => (
-          <div key={room} className="game-panel flex flex-col">
-            <h3 className="font-fredoka-one text-xl text-foreground mb-3">
-              {room === 'Hall' ? '🛋' : room === 'Kitchen' ? '🍳' : '🛏'} {room}
-            </h3>
-            <div className="space-y-2 flex-1">
-              {APPLIANCES.filter(a => a.room === room).map(appliance => {
-                const isOn = applianceStates[appliance.id];
-                return (
-                  <div
-                    key={appliance.id}
-                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                      isOn ? 'bg-primary/15 glow-primary' : 'bg-muted hover:bg-muted/80'
-                    }`}
-                    onClick={() => handleToggle(appliance.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{appliance.icon}</span>
-                      <div>
-                        <span className="font-fredoka text-foreground block">{appliance.name}</span>
-                        <span className="font-fredoka text-xs text-muted-foreground">{appliance.watts}W</span>
+        {/* Appliance toggles */}
+        <div className="p-3 flex-1 space-y-3">
+          {rooms.map(room => (
+            <div key={room}>
+              <h3 className="font-fredoka-one text-xs text-foreground mb-1.5">
+                {room === 'Hall' ? '🛋' : room === 'Kitchen' ? '🍳' : '🛏'} {room}
+              </h3>
+              <div className="space-y-1">
+                {APPLIANCES.filter(a => a.room === room).map(appliance => {
+                  const isOn = applianceStates[appliance.id];
+                  return (
+                    <div
+                      key={appliance.id}
+                      className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                        isOn ? 'bg-primary/10' : 'bg-muted/50 hover:bg-muted'
+                      }`}
+                      onClick={() => handleToggle(appliance.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{appliance.icon}</span>
+                        <div>
+                          <span className="font-fredoka text-xs text-foreground block">{appliance.name}</span>
+                          <span className="font-fredoka text-[10px] text-muted-foreground">{appliance.watts}W</span>
+                        </div>
+                      </div>
+                      <div className={`w-8 h-5 rounded-full flex items-center px-0.5 transition-all duration-200 ${
+                        isOn ? 'bg-accent justify-end' : 'bg-muted-foreground/20 justify-start'
+                      }`}>
+                        <div className={`w-4 h-4 rounded-full ${isOn ? 'bg-accent-foreground' : 'bg-card'}`} />
                       </div>
                     </div>
-                    <div className={`w-12 h-7 rounded-full flex items-center transition-all duration-200 px-1 ${
-                      isOn ? 'bg-accent justify-end' : 'bg-muted-foreground/20 justify-start'
-                    }`}>
-                      <div className={`w-5 h-5 rounded-full transition-all ${
-                        isOn ? 'bg-accent-foreground' : 'bg-card'
-                      }`} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Power bar for room */}
-            <div className="mt-3 p-2 bg-muted rounded-lg">
-              <div className="flex justify-between text-xs font-fredoka text-muted-foreground mb-1">
-                <span>Room power</span>
-                <span>
-                  {APPLIANCES.filter(a => a.room === room && applianceStates[a.id]).reduce((s, a) => s + a.watts, 0)}W
-                </span>
-              </div>
-              <div className="w-full h-2 bg-background rounded-full">
-                <div
-                  className="h-full bg-accent rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, (APPLIANCES.filter(a => a.room === room && applianceStates[a.id]).reduce((s, a) => s + a.watts, 0) / 600) * 100)}%`
-                  }}
-                />
+                  );
+                })}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {canProceed && (
-        <div className="flex justify-center mt-4">
-          <button onClick={nextLevel} className="game-btn game-btn-accent text-xl animate-float">
-            🏠 Activate Smart Home →
-          </button>
+          ))}
         </div>
-      )}
+
+        {canProceed && (
+          <div className="p-3 border-t border-border">
+            <button onClick={nextLevel} className="game-btn game-btn-accent w-full text-sm">
+              🏠 Smart Home →
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

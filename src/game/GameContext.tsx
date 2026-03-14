@@ -88,16 +88,15 @@ const initialState: GameState = {
 };
 
 export const APPLIANCES: Appliance[] = [
-  { id: 'bulb1', name: 'LED Bulb', room: 'Hall', watts: 9, icon: '💡', on: false },
-  { id: 'bulb2', name: 'LED Bulb 2', room: 'Hall', watts: 9, icon: '💡', on: false },
-  { id: 'bulb3', name: 'LED Bulb 3', room: 'Hall', watts: 9, icon: '💡', on: false },
-  { id: 'fan1', name: 'Ceiling Fan', room: 'Hall', watts: 70, icon: '🌀', on: false },
-  { id: 'tv', name: 'TV', room: 'Hall', watts: 120, icon: '📺', on: false },
-  { id: 'bulb-k', name: 'Kitchen Light', room: 'Kitchen', watts: 9, icon: '💡', on: false },
+  { id: 'bulb-hall', name: 'Bulb', room: 'Hall', watts: 9, icon: '💡', on: false },
+  { id: 'fan-hall', name: 'Ceiling Fan', room: 'Hall', watts: 70, icon: '🌀', on: false },
+  { id: 'tv-hall', name: 'TV', room: 'Hall', watts: 120, icon: '📺', on: false },
+  { id: 'bulb-kitchen', name: 'Bulb', room: 'Kitchen', watts: 9, icon: '💡', on: false },
   { id: 'fridge', name: 'Refrigerator', room: 'Kitchen', watts: 300, icon: '🧊', on: false },
-  { id: 'bulb-b', name: 'Bedroom Light', room: 'Bedroom', watts: 9, icon: '💡', on: false },
-  { id: 'fan2', name: 'Bedroom Fan', room: 'Bedroom', watts: 70, icon: '🌀', on: false },
-  { id: 'washer', name: 'Washing Machine', room: 'Bedroom', watts: 500, icon: '🫧', on: false },
+  { id: 'washer', name: 'Washing Machine', room: 'Kitchen', watts: 500, icon: '🫧', on: false },
+  { id: 'bulb-bed', name: 'Bulb', room: 'Bedroom', watts: 9, icon: '💡', on: false },
+  { id: 'fan-bed', name: 'Ceiling Fan', room: 'Bedroom', watts: 70, icon: '🌀', on: false },
+  { id: 'tv-bed', name: 'TV', room: 'Bedroom', watts: 120, icon: '📺', on: false },
 ];
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -146,14 +145,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const placeComponent = useCallback((id: string) => {
     setState(prev => ({
       ...prev,
-      placedComponents: [...prev.placedComponents, id],
+      placedComponents: prev.placedComponents.includes(id) ? prev.placedComponents : [...prev.placedComponents, id],
     }));
   }, []);
 
   const connectWire = useCallback((id: string) => {
     setState(prev => ({
       ...prev,
-      connectedWires: [...prev.connectedWires, id],
+      connectedWires: prev.connectedWires.includes(id) ? prev.connectedWires : [...prev.connectedWires, id],
     }));
   }, []);
 

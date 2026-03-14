@@ -1,196 +1,174 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment } from '@react-three/drei';
 import { useGame } from '../GameContext';
-import { Lightbulb, Fan, ToggleRight, Plug, GripVertical, Tv, Refrigerator } from 'lucide-react';
+import HomeModel from '../models/HomeModel';
+import { Bot, GripVertical } from 'lucide-react';
 
 interface ComponentItem {
   id: string;
   room: string;
   name: string;
-  icon: typeof Lightbulb;
+  icon: string;
 }
 
 const allComponents: ComponentItem[] = [
-  { id: 'hall-light1', room: 'Hall', name: 'LED Light 1', icon: Lightbulb },
-  { id: 'hall-light2', room: 'Hall', name: 'LED Light 2', icon: Lightbulb },
-  { id: 'hall-light3', room: 'Hall', name: 'LED Light 3', icon: Lightbulb },
-  { id: 'hall-fan', room: 'Hall', name: 'Ceiling Fan', icon: Fan },
-  { id: 'hall-switch', room: 'Hall', name: 'Switch Board', icon: ToggleRight },
-  { id: 'hall-tv', room: 'Hall', name: 'TV Socket', icon: Plug },
-  { id: 'kitchen-light', room: 'Kitchen', name: 'LED Light', icon: Lightbulb },
-  { id: 'kitchen-socket', room: 'Kitchen', name: 'Socket Board', icon: Plug },
-  { id: 'bed-light', room: 'Bedroom', name: 'LED Light', icon: Lightbulb },
-  { id: 'bed-fan', room: 'Bedroom', name: 'Ceiling Fan', icon: Fan },
-  { id: 'bed-socket', room: 'Bedroom', name: 'Bedside Socket', icon: Plug },
+  { id: 'bulb-hall', room: 'Hall', name: 'Hall Bulb', icon: '💡' },
+  { id: 'fan-hall', room: 'Hall', name: 'Hall Fan', icon: '🌀' },
+  { id: 'tv-hall', room: 'Hall', name: 'Hall TV', icon: '📺' },
+  { id: 'bulb-kitchen', room: 'Kitchen', name: 'Kitchen Bulb', icon: '💡' },
+  { id: 'fridge', room: 'Kitchen', name: 'Refrigerator', icon: '🧊' },
+  { id: 'washer', room: 'Kitchen', name: 'Washing Machine', icon: '🫧' },
+  { id: 'bulb-bed', room: 'Bedroom', name: 'Bedroom Bulb', icon: '💡' },
+  { id: 'fan-bed', room: 'Bedroom', name: 'Bedroom Fan', icon: '🌀' },
+  { id: 'tv-bed', room: 'Bedroom', name: 'Bedroom TV', icon: '📺' },
 ];
 
 const rooms = ['Hall', 'Kitchen', 'Bedroom'] as const;
 
-const dropZones: Record<string, { label: string; room: string; x: number; y: number }> = {
-  'hall-light1': { label: 'Light 1', room: 'Hall', x: 10, y: 15 },
-  'hall-light2': { label: 'Light 2', room: 'Hall', x: 20, y: 15 },
-  'hall-light3': { label: 'Light 3', room: 'Hall', x: 30, y: 15 },
-  'hall-fan': { label: 'Fan', room: 'Hall', x: 20, y: 8 },
-  'hall-switch': { label: 'Switch', room: 'Hall', x: 8, y: 35 },
-  'hall-tv': { label: 'TV', room: 'Hall', x: 30, y: 35 },
-  'kitchen-light': { label: 'Light', room: 'Kitchen', x: 55, y: 15 },
-  'kitchen-socket': { label: 'Socket', room: 'Kitchen', x: 55, y: 35 },
-  'bed-light': { label: 'Light', room: 'Bedroom', x: 80, y: 15 },
-  'bed-fan': { label: 'Fan', room: 'Bedroom', x: 80, y: 8 },
-  'bed-socket': { label: 'Socket', room: 'Bedroom', x: 80, y: 35 },
-};
-
 export default function WiringPuzzle() {
-  const { placedComponents, placeComponent, addStar, addPoints, showVoltGuide, nextLevel } = useGame();
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [justPlaced, setJustPlaced] = useState<string | null>(null);
+  const { placedComponents, placeComponent, addStar, addPoints, showVoltGuide, nextLevel, voltMessage } = useGame();
+  const [selected, setSelected] = useState<string | null>(null);
 
   const allPlaced = allComponents.every(c => placedComponents.includes(c.id));
 
-  const handleDragStart = (id: string) => {
-    if (!placedComponents.includes(id)) {
-      setDragging(id);
-    }
-  };
+  useEffect(() => {
+    showVoltGuide("Install appliances in each room! Select a component from the toolbox, then it will appear in the house.");
+  }, []);
 
-  const handleDrop = useCallback((zoneId: string) => {
-    if (dragging === zoneId && !placedComponents.includes(zoneId)) {
-      placeComponent(zoneId);
-      setJustPlaced(zoneId);
-      addPoints(10);
-      setTimeout(() => setJustPlaced(null), 800);
+  const handlePlace = useCallback((id: string) => {
+    if (placedComponents.includes(id)) return;
+    placeComponent(id);
+    addPoints(15);
+    setSelected(null);
 
-      const remaining = allComponents.filter(c => !placedComponents.includes(c.id) && c.id !== zoneId).length;
-      if (remaining === 0) {
+    const comp = allComponents.find(c => c.id === id);
+    showVoltGuide(`✅ ${comp?.name} installed in the ${comp?.room}!`);
+
+    const remaining = allComponents.filter(c => !placedComponents.includes(c.id) && c.id !== id).length;
+    if (remaining === 0) {
+      setTimeout(() => {
         addStar();
-        showVoltGuide("⭐ All components installed! Each needs Phase, Neutral, and Earth wires. Now connect them!");
-      } else if (remaining <= 3) {
-        showVoltGuide(`Almost there! ${remaining} components left!`);
-      }
-    } else if (dragging && dragging !== zoneId) {
-      showVoltGuide("⚠️ Wrong placement! That component goes somewhere else. Check the room labels!");
+        addPoints(50);
+        showVoltGuide("⭐ All components installed! In homes, appliances are connected in parallel so each device gets full voltage and works independently.");
+      }, 800);
     }
-    setDragging(null);
-  }, [dragging, placedComponents, placeComponent, addStar, addPoints, showVoltGuide]);
+  }, [placedComponents, placeComponent, addStar, addPoints, showVoltGuide]);
 
   return (
-    <div className="fixed inset-0 z-40 bg-background flex">
-      <div className="flex-1 relative p-6">
-        <div className="absolute top-6 left-6 z-10 game-panel py-3 px-5">
-          <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 6 of 8</p>
-          <p className="font-fredoka-one text-xl text-foreground">Home Wiring Simulator</p>
-        </div>
+    <div className="fixed inset-0 z-40 flex bg-background">
+      {/* 3D Scene */}
+      <div className="flex-1 relative">
+        <Canvas shadows camera={{ position: [8, 6, 10], fov: 45 }}>
+          <HomeModel
+            placedAppliances={placedComponents}
+            applianceStates={{}}
+            showMCB
+            mcbActive
+            highlightAppliance={selected}
+            highlightRoom={selected ? allComponents.find(c => c.id === selected)?.room ?? null : null}
+          />
+          <OrbitControls
+            enablePan={false}
+            minDistance={8}
+            maxDistance={18}
+            maxPolarAngle={Math.PI / 2.3}
+            target={[0, 1.2, 0]}
+          />
+          <Environment preset="apartment" />
+        </Canvas>
 
-        <div className="absolute inset-6 top-20">
-          <div className="absolute left-[5%] top-0 w-[35%] h-full border-2 border-dashed border-accent/30 rounded-2xl p-4">
-            <span className="font-fredoka-one text-accent text-lg">🛋 Hall</span>
-          </div>
-          <div className="absolute left-[42%] top-0 w-[25%] h-full border-2 border-dashed border-accent/30 rounded-2xl p-4">
-            <span className="font-fredoka-one text-accent text-lg">🍳 Kitchen</span>
-          </div>
-          <div className="absolute left-[69%] top-0 w-[28%] h-full border-2 border-dashed border-accent/30 rounded-2xl p-4">
-            <span className="font-fredoka-one text-accent text-lg">🛏 Bedroom</span>
-          </div>
-
-          {Object.entries(dropZones).map(([id, zone]) => {
-            const placed = placedComponents.includes(id);
-            const comp = allComponents.find(c => c.id === id);
-            const Icon = comp?.icon || Lightbulb;
-
-            return (
-              <div
-                key={id}
-                className={`absolute w-16 h-16 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
-                  placed
-                    ? justPlaced === id
-                      ? 'bg-primary/30 glow-primary scale-110'
-                      : 'bg-accent/20 border-2 border-accent'
-                    : 'bg-muted border-2 border-dashed border-muted-foreground/30 animate-pulse-glow'
-                }`}
-                style={{ left: `${zone.x}%`, top: `${zone.y}%` }}
-                onDragOver={e => e.preventDefault()}
-                onDrop={() => handleDrop(id)}
-                onClick={() => dragging && handleDrop(id)}
-              >
-                <Icon className={`w-5 h-5 ${placed ? 'text-accent' : 'text-muted-foreground/50'}`} />
-                <span className="text-[10px] font-fredoka text-muted-foreground mt-0.5">{zone.label}</span>
-              </div>
-            );
-          })}
+        <div className="absolute top-3 left-3 z-10 game-panel py-2 px-4">
+          <p className="font-fredoka-one text-xs text-accent uppercase tracking-wider">Level 6 of 8</p>
+          <p className="font-fredoka-one text-base text-foreground">Home Wiring Simulator</p>
         </div>
 
         {/* Grounding info */}
-        <div className="absolute bottom-6 left-6 game-panel py-2 px-4 max-w-xs">
-          <p className="font-fredoka text-sm text-muted-foreground">
-            🔬 <strong>Why grounding?</strong> Earth wire provides a safe path for fault current, preventing electric shock!
+        <div className="absolute bottom-3 left-3 z-10 game-panel py-2 px-3 max-w-[260px]">
+          <p className="font-fredoka text-[11px] text-muted-foreground">
+            🔬 <strong>Why grounding?</strong> The earth wire provides a safe path for fault current, preventing electric shock.
           </p>
         </div>
       </div>
 
-      <div className="w-52 bg-card border-l border-border p-4 overflow-y-auto">
-        <h3 className="font-fredoka-one text-lg text-foreground mb-4">🧰 Toolbox</h3>
+      {/* Right panel — Toolbox */}
+      <div className="w-64 bg-card border-l border-border flex flex-col overflow-y-auto">
+        {/* Volt */}
+        <div className="p-3 border-b border-border bg-accent/5">
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5">
+              <Bot className="w-4 h-4 text-accent" />
+            </div>
+            <p className="font-fredoka text-xs text-foreground leading-relaxed">{voltMessage || "Select & install components!"}</p>
+          </div>
+        </div>
 
-        {rooms.map(room => (
-          <div key={room} className="mb-4">
-            <p className="font-fredoka text-sm text-muted-foreground mb-2">{room}</p>
-            <div className="space-y-2">
-              {allComponents
-                .filter(c => c.room === room)
-                .map(comp => {
-                  const placed = placedComponents.includes(comp.id);
-                  const Icon = comp.icon;
-                  return (
-                    <div
-                      key={comp.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-grab transition-all ${
-                        placed
-                          ? 'opacity-40 cursor-default'
-                          : dragging === comp.id
-                            ? 'bg-accent/20 scale-105 glow-accent'
-                            : 'bg-muted hover:bg-accent/10'
-                      }`}
-                      draggable={!placed}
-                      onDragStart={() => handleDragStart(comp.id)}
-                      onClick={() => !placed && setDragging(dragging === comp.id ? null : comp.id)}
-                    >
-                      <GripVertical className="w-3 h-3 text-muted-foreground" />
-                      <Icon className="w-4 h-4 text-foreground" />
-                      <span className="font-fredoka text-sm text-foreground">{comp.name}</span>
-                      {placed && <span className="ml-auto text-accent text-xs">✓</span>}
-                    </div>
-                  );
-                })}
+        <div className="p-3 flex-1">
+          <h3 className="font-fredoka-one text-sm text-foreground mb-3">🧰 Toolbox</h3>
+
+          {rooms.map(room => (
+            <div key={room} className="mb-3">
+              <p className="font-fredoka text-xs text-muted-foreground mb-1.5 uppercase tracking-wide">{room}</p>
+              <div className="space-y-1.5">
+                {allComponents
+                  .filter(c => c.room === room)
+                  .map(comp => {
+                    const placed = placedComponents.includes(comp.id);
+                    return (
+                      <div
+                        key={comp.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                          placed ? 'opacity-40 cursor-default bg-muted/50' :
+                          selected === comp.id ? 'bg-accent/15 ring-1 ring-accent' :
+                          'bg-muted hover:bg-accent/10'
+                        }`}
+                        onClick={() => {
+                          if (!placed) {
+                            if (selected === comp.id) {
+                              handlePlace(comp.id);
+                            } else {
+                              setSelected(comp.id);
+                              showVoltGuide(`Selected ${comp.name}. Click again to install in ${comp.room}!`);
+                            }
+                          }
+                        }}
+                      >
+                        <span className="text-sm">{comp.icon}</span>
+                        <span className="font-fredoka text-xs text-foreground flex-1">{comp.name}</span>
+                        {placed && <span className="text-accent text-xs">✓</span>}
+                        {!placed && selected === comp.id && (
+                          <span className="text-[10px] text-accent font-fredoka">tap to install</span>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
+
+          {/* Progress */}
+          <div className="mt-3 p-2 bg-muted/50 rounded-xl">
+            <div className="flex justify-between text-[11px] font-fredoka text-muted-foreground mb-1">
+              <span>Installed</span>
+              <span>{placedComponents.length}/{allComponents.length}</span>
+            </div>
+            <div className="w-full h-1.5 bg-background rounded-full">
+              <div
+                className="h-full bg-accent rounded-full transition-all duration-500"
+                style={{ width: `${(placedComponents.length / allComponents.length) * 100}%` }}
+              />
             </div>
           </div>
-        ))}
+        </div>
 
-        <div className="mt-4 p-3 bg-muted rounded-xl">
-          <p className="font-fredoka text-sm text-muted-foreground">
-            {placedComponents.length}/{allComponents.length} placed
-          </p>
-          <div className="w-full h-2 bg-background rounded-full mt-2">
-            <div
-              className="h-full bg-accent rounded-full transition-all duration-500"
-              style={{ width: `${(placedComponents.length / allComponents.length) * 100}%` }}
-            />
+        {allPlaced && (
+          <div className="p-3 border-t border-border">
+            <button onClick={nextLevel} className="game-btn game-btn-accent w-full text-sm">
+              ⚡ Power Consumption →
+            </button>
           </div>
-        </div>
+        )}
       </div>
-
-      {dragging && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 game-panel py-2 px-4">
-          <p className="font-fredoka text-foreground">
-            📦 Click the matching drop zone for "{allComponents.find(c => c.id === dragging)?.name}"
-          </p>
-        </div>
-      )}
-
-      {allPlaced && (
-        <div className="fixed bottom-6 right-60 z-50">
-          <button onClick={nextLevel} className="game-btn game-btn-accent text-xl animate-float">
-            Connect Wires →
-          </button>
-        </div>
-      )}
     </div>
   );
 }
