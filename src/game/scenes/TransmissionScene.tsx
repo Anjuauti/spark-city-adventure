@@ -4,7 +4,7 @@ import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '../GameContext';
 
-function Tower({ position, active, onClick, index }: { position: [number, number, number]; active: boolean; onClick: () => void; index: number }) {
+function Tower({ position, active, onClick }: { position: [number, number, number]; active: boolean; onClick: () => void; }) {
   return (
     <group position={position} onClick={onClick}
       onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
@@ -26,9 +26,9 @@ function Tower({ position, active, onClick, index }: { position: [number, number
         <mesh key={x} position={[x, 4.7, 0]}>
           <cylinderGeometry args={[0.08, 0.08, 0.3, 8]} />
           <meshStandardMaterial
-            color={active ? '#00BCD4' : '#90A4AE'}
-            emissive={active ? '#00BCD4' : '#000'}
-            emissiveIntensity={active ? 0.5 : 0}
+            color={active ? '#5DADE2' : '#90A4AE'}
+            emissive={active ? '#5DADE2' : '#000'}
+            emissiveIntensity={active ? 0.4 : 0}
           />
         </mesh>
       ))}
@@ -49,13 +49,9 @@ function PowerLine({ from, to, active }: { from: [number, number, number]; to: [
   return (
     <line>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[new Float32Array(points.flatMap(p => [p.x, p.y, p.z])), 3]}
-          count={points.length}
-        />
+        <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flatMap(p => [p.x, p.y, p.z])), 3]} count={points.length} />
       </bufferGeometry>
-      <lineBasicMaterial color={active ? '#00BCD4' : '#666'} linewidth={2} />
+      <lineBasicMaterial color={active ? '#5DADE2' : '#666'} linewidth={2} />
     </line>
   );
 }
@@ -78,13 +74,12 @@ function ElectricityParticles({ from, to, active }: { from: [number, number, num
   });
 
   if (!active) return null;
-
   return (
     <points ref={ref}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} count={count} />
       </bufferGeometry>
-      <pointsMaterial size={0.25} color="#00E5FF" transparent opacity={0.9} />
+      <pointsMaterial size={0.25} color="#7EC8E3" transparent opacity={0.8} />
     </points>
   );
 }
@@ -94,21 +89,15 @@ function StepUpTransformer({ active }: { active: boolean }) {
     <group position={[-10, 0, 0]}>
       <mesh position={[0, 1, 0]}>
         <boxGeometry args={[1.5, 2, 1]} />
-        <meshStandardMaterial
-          color="#546E7A"
-          emissive={active ? '#FFD700' : '#000'}
-          emissiveIntensity={active ? 0.3 : 0}
-          metalness={0.7}
-        />
+        <meshStandardMaterial color="#546E7A" emissive={active ? '#E8B930' : '#000'} emissiveIntensity={active ? 0.2 : 0} metalness={0.7} />
       </mesh>
-      {/* Coils */}
       <mesh position={[-0.4, 1, 0.6]}>
         <torusGeometry args={[0.3, 0.05, 8, 16]} />
-        <meshStandardMaterial color="#FF8F00" />
+        <meshStandardMaterial color="#E67E22" />
       </mesh>
       <mesh position={[0.4, 1, 0.6]}>
         <torusGeometry args={[0.4, 0.05, 8, 16]} />
-        <meshStandardMaterial color="#FF8F00" />
+        <meshStandardMaterial color="#E67E22" />
       </mesh>
     </group>
   );
@@ -116,7 +105,6 @@ function StepUpTransformer({ active }: { active: boolean }) {
 
 function TransmissionContent() {
   const { transmissionStep, setTransmissionStep, addStar, addPoints, showVoltGuide } = useGame();
-
   const towers: [number, number, number][] = [[-6, 0, 0], [0, 0, 0], [6, 0, 0]];
   const stepMap: Record<string, number> = { idle: -1, tower1: 0, tower2: 1, tower3: 2, complete: 3 };
   const activeCount = stepMap[transmissionStep] ?? -1;
@@ -125,21 +113,19 @@ function TransmissionContent() {
     if (index === activeCount + 1) {
       const steps: ('tower1' | 'tower2' | 'tower3')[] = ['tower1', 'tower2', 'tower3'];
       setTransmissionStep(steps[index]);
-
       const messages = [
-        "Tower 1 activated! Electricity is stepped up to high voltage to reduce power loss during transmission!",
+        "Tower 1 activated! Electricity is stepped up to high voltage to reduce power loss!",
         "Tower 2 connected! High voltage travels efficiently over long distances!",
-        "All towers connected! ⚡ Electricity travels through power lines at high voltage!"
+        "All towers connected! ⚡ Power flows through transmission lines!"
       ];
       showVoltGuide(messages[index]);
-
       if (index === 2) {
         setTimeout(() => {
           setTransmissionStep('complete');
           addStar();
           addPoints(100);
-          showVoltGuide("⭐ Power transmitted! Now we need to step it down at the substation!");
-        }, 1500);
+          showVoltGuide("⭐ Power transmitted! Now we step it down at the substation!");
+        }, 2500);
       }
     }
   };
@@ -147,26 +133,21 @@ function TransmissionContent() {
   return (
     <>
       <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 15, 5]} intensity={1.2} />
-
+      <directionalLight position={[10, 15, 5]} intensity={1} />
       <StepUpTransformer active={activeCount >= 0} />
-
       {towers.map((pos, i) => (
-        <Tower key={i} position={pos} active={i <= activeCount} onClick={() => handleTowerClick(i)} index={i} />
+        <Tower key={i} position={pos} active={i <= activeCount} onClick={() => handleTowerClick(i)} />
       ))}
-
       {towers.slice(0, -1).map((from, i) => (
         <group key={i}>
           <PowerLine from={from} to={towers[i + 1]} active={i < activeCount} />
           <ElectricityParticles from={from} to={towers[i + 1]} active={i < activeCount} />
         </group>
       ))}
-
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
         <planeGeometry args={[30, 20]} />
-        <meshStandardMaterial color="#7CB342" roughness={0.9} />
+        <meshStandardMaterial color="#8CB88C" roughness={0.9} />
       </mesh>
-
       <OrbitControls enablePan={false} minDistance={8} maxDistance={25} maxPolarAngle={Math.PI / 2.2} />
       <Environment preset="city" />
     </>
@@ -175,20 +156,19 @@ function TransmissionContent() {
 
 export default function TransmissionScene() {
   const { transmissionStep, nextLevel } = useGame();
-
   return (
     <div className="fixed inset-0 z-30">
       <Canvas shadows camera={{ position: [0, 8, 16], fov: 50 }}>
         <TransmissionContent />
       </Canvas>
 
-      <div className="fixed top-6 left-6 z-50 game-panel py-3 px-5">
-        <p className="font-fredoka-one text-sm text-accent uppercase tracking-wider">Level 3 of 8</p>
-        <p className="font-fredoka-one text-xl text-foreground">Step-Up & Transmission</p>
+      <div className="fixed top-3 left-3 z-50 game-panel py-2 px-4">
+        <p className="font-fredoka-one text-xs text-accent uppercase tracking-wider">Level 3 of 8</p>
+        <p className="font-fredoka-one text-base text-foreground">Step-Up & Transmission</p>
       </div>
 
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 game-panel py-2 px-4">
-        <p className="font-fredoka text-foreground text-center">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 game-panel py-2 px-3">
+        <p className="font-fredoka text-xs text-foreground text-center">
           {transmissionStep === 'idle' && '👆 Tap Tower 1 to send electricity!'}
           {transmissionStep === 'tower1' && '👆 Now tap Tower 2!'}
           {transmissionStep === 'tower2' && '👆 Tap Tower 3 to complete the line!'}
@@ -197,16 +177,15 @@ export default function TransmissionScene() {
         </p>
       </div>
 
-      {/* Scientific info panel */}
-      <div className="fixed bottom-20 left-6 z-50 game-panel py-2 px-4 max-w-xs">
-        <p className="font-fredoka text-sm text-muted-foreground">
-          🔬 <strong>Why high voltage?</strong> Higher voltage means lower current for the same power, reducing energy lost as heat in the wires!
+      <div className="fixed bottom-14 left-3 z-50 game-panel py-2 px-3 max-w-[240px]">
+        <p className="font-fredoka text-[11px] text-muted-foreground">
+          🔬 <strong>Why high voltage?</strong> Higher voltage means lower current for the same power, reducing energy lost as heat!
         </p>
       </div>
 
       {transmissionStep === 'complete' && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <button onClick={nextLevel} className="game-btn game-btn-accent text-xl animate-float">
+        <div className="fixed bottom-3 right-3 z-50">
+          <button onClick={nextLevel} className="game-btn game-btn-accent text-sm animate-float">
             To the Substation →
           </button>
         </div>

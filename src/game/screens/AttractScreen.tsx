@@ -5,40 +5,40 @@ export default function AttractScreen() {
   const { setLevel } = useGame();
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-gradient-to-br from-accent/10 via-background to-primary/10">
-      <div className="text-center max-w-3xl px-6">
-        <div className="flex justify-center gap-4 mb-8">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-gradient-to-br from-accent/5 via-background to-primary/5">
+      <div className="text-center max-w-2xl px-6">
+        <div className="flex justify-center gap-3 mb-6">
           {[Droplets, Factory, Zap, Home, Lightbulb].map((Icon, i) => (
             <div
               key={i}
-              className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center animate-float"
+              className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center animate-float"
               style={{ animationDelay: `${i * 0.3}s` }}
             >
-              <Icon className="w-8 h-8 text-accent" />
+              <Icon className="w-6 h-6 text-accent" />
             </div>
           ))}
         </div>
 
-        <h1 className="font-fredoka-one text-4xl md:text-6xl text-foreground mb-3">
+        <h1 className="font-fredoka-one text-3xl md:text-5xl text-foreground mb-2">
           ⚡ Spark City Adventure
         </h1>
-        <p className="font-fredoka-one text-xl md:text-2xl text-accent mb-2">
+        <p className="font-fredoka-one text-lg md:text-xl text-accent mb-1">
           From Generation to Home Electricity
         </p>
-        <p className="font-fredoka text-lg text-muted-foreground mb-10">
+        <p className="font-fredoka text-sm text-muted-foreground mb-8">
           Restore electricity to Spark City through 8 interactive missions!
         </p>
 
         <button
           onClick={() => setLevel('instructions')}
-          className="game-btn text-2xl px-10 py-4"
+          className="game-btn text-lg px-8 py-3"
         >
           Start Adventure!
         </button>
 
-        <div className="mt-8 flex items-center justify-center gap-2 text-muted-foreground">
-          <Bot className="w-5 h-5 text-accent" />
-          <span className="font-fredoka text-sm">Meet Volt — Your AI Robot Guide</span>
+        <div className="mt-6 flex items-center justify-center gap-2 text-muted-foreground">
+          <Bot className="w-4 h-4 text-accent" />
+          <span className="font-fredoka text-xs">Meet Volt — Your AI Robot Guide</span>
         </div>
       </div>
     </div>
