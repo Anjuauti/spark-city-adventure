@@ -104,15 +104,15 @@ export const VoltGuide = () => {
         transition={{ delay: 0.3, type: 'spring' }}
         className="animate-float flex-shrink-0"
         style={{
-          background: 'linear-gradient(135deg, #1e40af, #0ea5e9)',
+          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
           borderRadius: '50%',
           width: 58,
           height: 58,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 0 20px rgba(0,194,255,0.6), 0 0 40px rgba(0,194,255,0.3)',
-          border: '3px solid rgba(0,194,255,0.6)',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
+          border: '3px solid rgba(139,92,246,0.5)',
           fontSize: '1.8rem',
         }}
       >
@@ -131,7 +131,7 @@ export const VoltGuide = () => {
         >
           <p
             className="font-display font-bold mb-1"
-            style={{ fontSize: '0.7rem', color: '#0ea5e9', letterSpacing: '0.05em' }}
+            style={{ fontSize: '0.7rem', color: '#8b5cf6', letterSpacing: '0.05em' }}
           >
             ⚡ VOLT SAYS:
           </p>
@@ -177,39 +177,52 @@ export const NextLevelButton = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-50 pointer-events-none"
+          className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center"
         >
-          <div className="absolute inset-0 bg-white/25 backdrop-blur-sm" />
-
           <motion.div
-            initial={{ y: -40, opacity: 0, scale: 0.8 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
+            initial={{ scale: 0.7, opacity: 0, y: 30 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ delay: 0.1, type: 'spring', bounce: 0.4 }}
-            className="absolute top-20 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-full"
+            className="pointer-events-auto flex flex-col items-center gap-5 px-10 py-8 rounded-3xl"
             style={{
-              background: 'linear-gradient(135deg, #ffd700, #f59e0b)',
-              boxShadow: '0 0 30px rgba(255,215,0,0.6), 0 0 60px rgba(255,215,0,0.3)',
-              whiteSpace: 'nowrap',
+              background: 'rgba(255,255,255,0.97)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+              border: '3px solid #fbbf24',
+              maxWidth: 400,
+              width: '90%',
             }}
           >
-            <Star className="fill-white text-white" style={{ width: 22, height: 22 }} />
-            <span className="font-display font-bold text-slate-900" style={{ fontSize: '1.25rem' }}>
-              Level Complete! +50 ⚡
-            </span>
-            <Star className="fill-white text-white" style={{ width: 22, height: 22 }} />
-          </motion.div>
+            <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>🎉</div>
+            <div className="text-center">
+              <h2 className="font-display font-bold text-slate-800" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)' }}>
+                Level Complete!
+              </h2>
+              <p className="font-bold text-amber-500 mt-1" style={{ fontSize: '1.1rem' }}>
+                +50 ⚡ points earned!
+              </p>
+            </div>
 
-          <motion.button
-            initial={{ x: 60, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.35, type: 'spring', bounce: 0.35 }}
-            onClick={nextLevel}
-            className="absolute bottom-5 right-5 pointer-events-auto game-btn game-btn-accent flex items-center gap-2"
-            style={{ fontSize: '1.05rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
-          >
-            {NEXT_LABELS[currentLevel] || 'Next Level'}
-            <ArrowRight style={{ width: 19, height: 19 }} className="animate-bounce-arrow flex-shrink-0" />
-          </motion.button>
+            <div className="flex gap-1">
+              {[...Array(3)].map((_, i) => (
+                <Star key={i} className="fill-yellow-400 text-yellow-400" style={{ width: 28, height: 28 }} />
+              ))}
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={nextLevel}
+              className="flex items-center gap-2 px-7 py-3 rounded-2xl font-display font-bold text-white"
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 18px rgba(245,158,11,0.45)',
+              }}
+            >
+              {NEXT_LABELS[currentLevel] || 'Next Level'}
+              <ArrowRight style={{ width: 20, height: 20 }} />
+            </motion.button>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

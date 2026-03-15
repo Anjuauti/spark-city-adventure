@@ -530,8 +530,7 @@ export const Level8SmartHome = () => {
                       </div>
                     </div>
                     <button
-                      className="big-switch"
-                      style={{ '--switch-color': on ? '#059669' : '#94a3b8' } as React.CSSProperties}
+                      className={`big-switch ${on ? 'on' : ''}`}
                       onClick={() => toggle(app.id)}
                     >
                       <div className={`big-switch-knob ${on ? 'on' : ''}`} />

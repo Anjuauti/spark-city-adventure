@@ -14,6 +14,14 @@ A React/Vite frontend application — an interactive educational game called "Sp
 ## Game Flow
 Level 0: Start Screen → Level 1 (Hydro Dam) → Level 2 (Generator) → Level 3 (Transmission Lines) → Level 4 (Substation) → Level 5 (Home Entry) → Level 6 (Home Wiring) → Level 7 (Power Consumption) → Level 8 (Smart Home) → Level 9 (Final Screen)
 
+## Design System & Conventions
+- **Backgrounds**: Light pastel gradients for 3D level scenes (not dark); dark-only for StartScreen/FinalScreen
+- **No blur overlays**: NextLevelButton and modals use solid white `rgba(255,255,255,0.97)` backgrounds — no backdrop-filter blur on gameplay modals
+- **Educational flow**: Each level uses explicit user-triggered buttons (not `setTimeout` auto-advance) to progress between steps
+- **Switch toggles**: `.big-switch.on` on the parent + `.big-switch-knob.on` on the inner div (both required for correct styling)
+- **InfoCard formula blocks**: Yellow `#fefce8` / `#fde047` inline formula cards used throughout levels for key equations
+- **VoltGuide**: Violet/purple color scheme (`#8b5cf6`), only shown on levels 1–4 (hidden on levels 5–8 with complex right panels)
+
 ## Key Files & Structure
 ```
 src/
