@@ -43,105 +43,141 @@ const STEPS = [
   },
 ];
 
-const addGlowWire = (scene: THREE.Scene, pts: THREE.Vector3[], color: number, glowing = true): THREE.Mesh => {
+const addWire = (scene: THREE.Scene, pts: THREE.Vector3[], color: number, radius = 0.07): THREE.Mesh => {
   const curve = new THREE.CatmullRomCurve3(pts);
-  const geo = new THREE.TubeGeometry(curve, 24, 0.07, 8, false);
-  const mat = new THREE.MeshStandardMaterial({
-    color, emissive: color, emissiveIntensity: glowing ? 1.4 : 0.15, roughness: 0.3,
-  });
+  const geo = new THREE.TubeGeometry(curve, 20, radius, 7, false);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
   const mesh = new THREE.Mesh(geo, mat);
   scene.add(mesh);
   return mesh;
 };
 
+/* Step 0: Utility pole + dim service cable */
 const buildStep0 = (scene: THREE.Scene) => {
   const pole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.22, 0.28, 13, 12),
     new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.9 })
   );
-  pole.position.set(-10, 6.5, 2);
+  pole.position.set(-10, 6.5, 0);
   scene.add(pole);
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x6a4a30 }));
-  arm.position.set(-10, 11.5, 2);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x6a4a30 }));
+  arm.position.set(-10, 11.5, 0);
   scene.add(arm);
-  [-0.9, 0.9].forEach(dx => {
+  [-0.8, 0.8].forEach(dx => {
     const ins = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x9090bb }));
-    ins.position.set(-10 + dx, 11.3, 2);
+    ins.position.set(-10 + dx, 11.3, 0);
     scene.add(ins);
   });
-  addGlowWire(scene, [new THREE.Vector3(-10, 11.3, 2), new THREE.Vector3(-7.5, 10.2, 2), new THREE.Vector3(-5.5, 9.4, 2)], 0x555555, false);
+  // Dim unlit cable
+  addWire(scene, [
+    new THREE.Vector3(-10, 11.3, 0),
+    new THREE.Vector3(-8.8, 9.5, -1),
+    new THREE.Vector3(-8.4, 7.5, -1),
+  ], 0x444444, 0.06);
 };
 
+/* Step 1: Electric Meter — on exterior left wall (x=-8.4, z=-1) */
 const buildStep1 = (scene: THREE.Scene) => {
-  // Visible white meter box
-  const meterBox = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.2, 0.9), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }));
-  meterBox.position.set(-8.2, 5, 2);
-  scene.add(meterBox);
-  // Display face
-  const face = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.4, 0.12), new THREE.MeshStandardMaterial({ color: 0xf0f8ff, emissive: 0xaaddff, emissiveIntensity: 0.15 }));
-  face.position.set(-8.2, 5.1, 2.5);
-  scene.add(face);
-  // Meter dial
-  const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.1, 20), new THREE.MeshStandardMaterial({ color: 0xfff0c0, emissive: 0xffee88, emissiveIntensity: 0.4 }));
-  dial.rotation.x = Math.PI / 2;
-  dial.position.set(-8.2, 5.3, 2.55);
+  // Dark mounting back plate
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.4, 2.4), new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.4 }));
+  plate.position.set(-8.35, 3.5, -1);
+  scene.add(plate);
+  // White meter casing
+  const casing = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.0, 2.0), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.3 }));
+  casing.position.set(-8.1, 3.5, -1);
+  scene.add(casing);
+  // LCD display window
+  const lcd = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 1.3), new THREE.MeshStandardMaterial({ color: 0xc8f0d0, roughness: 0.2 }));
+  lcd.position.set(-7.85, 3.8, -1);
+  scene.add(lcd);
+  // Rotating dial
+  const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.1, 20), new THREE.MeshStandardMaterial({ color: 0xfafafa }));
+  dial.rotation.z = Math.PI / 2;
+  dial.position.set(-7.85, 3.0, -1);
   scene.add(dial);
-  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.5, 0.05), new THREE.MeshStandardMaterial({ color: 0xe74c3c, emissive: 0xff0000, emissiveIntensity: 0.5 }));
-  needle.position.set(-8.2, 5.3, 2.62);
-  needle.rotation.z = Math.PI / 5;
+  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.08), new THREE.MeshStandardMaterial({ color: 0xcc3333 }));
+  needle.position.set(-7.82, 3.0, -1);
+  needle.rotation.x = Math.PI / 6;
   scene.add(needle);
-  // kWh label
-  const label = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.32, 0.05), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.6 }));
-  label.position.set(-8.2, 3.85, 2.53);
-  scene.add(label);
-  // Border frame
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(2.25, 3.25, 0.12), new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.5 }));
-  frame.position.set(-8.2, 5, 1.96);
-  scene.add(frame);
-  addGlowWire(scene, [new THREE.Vector3(-10, 11.3, 2), new THREE.Vector3(-9.5, 8, 2), new THREE.Vector3(-8.8, 5.8, 2)], 0xffdd00);
+  // kWh label bar (yellow strip)
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 1.8), new THREE.MeshStandardMaterial({ color: 0xffd700 }));
+  strip.position.set(-7.85, 2.2, -1);
+  scene.add(strip);
+  // Lit cable: pole → meter
+  addWire(scene, [
+    new THREE.Vector3(-10, 11.3, 0),
+    new THREE.Vector3(-8.8, 9.5, -1),
+    new THREE.Vector3(-8.4, 7.5, -1),
+    new THREE.Vector3(-8.4, 4.5, -1),
+  ], 0xddaa00, 0.07);
 };
 
+/* Step 2: Main Isolator Switch — on interior left wall, further inside */
 const buildStep2 = (scene: THREE.Scene) => {
-  const sw = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.9, 0.6), new THREE.MeshStandardMaterial({ color: 0xcc2222, emissive: 0xaa0000, emissiveIntensity: 0.3 }));
-  sw.position.set(-6.3, 5, 2);
+  // Red casing
+  const sw = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.0, 1.1), new THREE.MeshStandardMaterial({ color: 0xbb2020, roughness: 0.5 }));
+  sw.position.set(-7.6, 3.5, -2.5);
   scene.add(sw);
-  const lever = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.9, 0.2), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.6 }));
-  lever.position.set(-6.3, 5.8, 2.4);
+  // Yellow lever handle
+  const lever = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.25), new THREE.MeshStandardMaterial({ color: 0xffd700 }));
+  lever.position.set(-7.35, 4.2, -2.5);
   scene.add(lever);
-  addGlowWire(scene, [new THREE.Vector3(-8.2, 5, 2), new THREE.Vector3(-7.4, 5, 2), new THREE.Vector3(-6.8, 5, 2)], 0xffdd00);
+  // ON indicator
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshStandardMaterial({ color: 0x22dd44 }));
+  led.position.set(-7.35, 3.0, -2.5);
+  scene.add(led);
+  // Short wire: meter → switch
+  addWire(scene, [
+    new THREE.Vector3(-8.0, 3.5, -1),
+    new THREE.Vector3(-7.8, 3.5, -2.5),
+  ], 0xddaa00, 0.07);
 };
 
+/* Step 3: MCB Distribution Panel — on back-left wall interior */
 const buildStep3 = (scene: THREE.Scene) => {
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.5, 0.9), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.3 }));
-  panel.position.set(-4, 5.2, -3.6);
-  scene.add(panel);
-  const front = new THREE.Mesh(new THREE.BoxGeometry(3.1, 4.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-  front.position.set(-4, 5.2, -3.15);
-  scene.add(front);
-  const label = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.35, 0.05), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.5 }));
-  label.position.set(-4, 7.1, -3.12);
-  scene.add(label);
-  const colors = [0x22c55e, 0x22c55e, 0xf59e0b, 0xf59e0b, 0x3b82f6, 0x3b82f6];
+  // Main box (dark enclosure)
+  const enclosure = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4.0, 3.2), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.2 }));
+  enclosure.position.set(-7.2, 3.8, -3.6);
+  scene.add(enclosure);
+  // Panel face
+  const face = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.5, 2.8), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+  face.position.set(-6.9, 3.8, -3.6);
+  scene.add(face);
+  // Label strip
+  const lbl = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 2.6), new THREE.MeshStandardMaterial({ color: 0xffd700 }));
+  lbl.position.set(-6.88, 5.4, -3.6);
+  scene.add(lbl);
+  // MCB breakers in a row
+  const cols = [0x22c55e, 0x22c55e, 0xf59e0b, 0xf59e0b, 0x3b82f6, 0x3b82f6];
   for (let i = 0; i < 6; i++) {
-    const mcb = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.1, 0.5), new THREE.MeshStandardMaterial({ color: colors[i], emissive: colors[i], emissiveIntensity: 0.4 }));
-    mcb.position.set(-5.2 + i * 0.55, 5.4, -3.15);
-    scene.add(mcb);
+    const br = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.9, 0.35), new THREE.MeshStandardMaterial({ color: cols[i] }));
+    br.position.set(-6.88, 3.6, -4.1 + i * 0.45);
+    scene.add(br);
   }
-  addGlowWire(scene, [new THREE.Vector3(-6.3, 5, 2), new THREE.Vector3(-6.3, 5, -1), new THREE.Vector3(-5.5, 5.2, -3.3)], 0xffdd00);
+  // Wire: switch → MCB
+  addWire(scene, [
+    new THREE.Vector3(-7.6, 3.5, -2.5),
+    new THREE.Vector3(-7.6, 3.5, -3.6),
+    new THREE.Vector3(-7.2, 3.5, -3.6),
+  ], 0xddaa00, 0.07);
 };
 
+/* Step 4: 3-Wire system — Phase, Neutral, Earth */
 const buildStep4 = (scene: THREE.Scene) => {
-  const wireColors = [0xdc2626, 0x2563eb, 0x16a34a];
-  const yOffsets = [0.3, 0, -0.3];
-  wireColors.forEach((col, i) => {
-    addGlowWire(scene, [
-      new THREE.Vector3(-4, 5.2 + yOffsets[i], -3.2),
-      new THREE.Vector3(-1, 5.5 + yOffsets[i], -3.5),
-      new THREE.Vector3(2, 7.5, -3.5),
-      new THREE.Vector3(6, 7.5, -3.5),
-    ], col);
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.5 }));
-    dot.position.set(6, 7.8 + yOffsets[i], -3.5);
+  const wireData = [
+    { col: 0xcc2222, label: 'Phase', y: 7.2 },
+    { col: 0x2255cc, label: 'Neutral', y: 7.0 },
+    { col: 0x229944, label: 'Earth', y: 6.8 },
+  ];
+  wireData.forEach(w => {
+    addWire(scene, [
+      new THREE.Vector3(-6.9, w.y, -3.6),
+      new THREE.Vector3(-3, w.y, -3.5),
+      new THREE.Vector3(0, w.y, -3.5),
+      new THREE.Vector3(6, w.y, -3.5),
+    ], w.col, 0.06);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshStandardMaterial({ color: w.col }));
+    dot.position.set(6.3, w.y, -3.5);
     scene.add(dot);
   });
 };
