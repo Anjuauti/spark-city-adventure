@@ -5,211 +5,134 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../store/game-store';
 import { InfoCard } from '../GameUI';
 
-/* ── Step definitions ── */
 const STEPS = [
   {
     title: '1. Service Pole & Cable',
     icon: '🔌',
     color: '#3b82f6',
-    info: '240V AC electricity arrives from the national grid through thick overhead cables. The utility pole outside your home is the last connection point of the distribution network before electricity enters your house.',
-    voltMsg: "🔌 The SERVICE POLE brings 240V AC from the grid! Thick overhead cables carry high-current electricity to your home. Click 'Next Step' when ready!",
+    info: '240V AC electricity arrives from the national grid through overhead cables. The utility pole is the last connection of the distribution network before electricity enters your house.',
+    voltMsg: "🔌 The SERVICE POLE brings 240V AC from the grid! Thick overhead cables carry high-current electricity to your home.",
   },
   {
     title: '2. Electric Meter',
     icon: '📊',
     color: '#8b5cf6',
-    info: 'The Electric Meter counts every kilowatt-hour (kWh) of electricity you use. 1 kWh = 1000 Watts running for 1 hour. The utility company reads this meter every month to calculate your bill!',
-    voltMsg: "📊 The ELECTRIC METER is now connected! It counts kilowatt-hours (kWh). 1 kWh = 1000W for 1 hour. Every unit on your bill started here!",
+    info: 'The Electric Meter counts every kilowatt-hour (kWh) you use. 1 kWh = 1000 Watts running for 1 hour. The utility reads this meter monthly to calculate your electricity bill!',
+    voltMsg: "📊 The ELECTRIC METER is connected! It counts kWh. 1 kWh = 1000W for 1 hour. Every unit on your bill started here!",
   },
   {
     title: '3. Main Switch (Isolator)',
     icon: '🔴',
     color: '#ef4444',
-    info: 'The Main Isolator Switch cuts ALL electricity to the house instantly. ALWAYS turn this OFF before doing any electrical repair work — it is your primary safety control and emergency shutoff!',
-    voltMsg: "🔴 MAIN SWITCH added! This cuts ALL power to the house instantly. Always turn it OFF before touching any wires — your life depends on it!",
+    info: 'The Main Isolator Switch cuts ALL electricity to the house instantly. ALWAYS turn this OFF before any electrical work — it\'s your primary safety control!',
+    voltMsg: "🔴 MAIN SWITCH installed! Cuts ALL power instantly. Always turn it OFF before touching any wires — safety first!",
   },
   {
     title: '4. MCB Panel (Distribution Board)',
     icon: '🛡️',
     color: '#059669',
-    info: 'The MCB Panel contains separate Miniature Circuit Breakers for each room. If too much current flows through a circuit — from a fault or short-circuit — the MCB trips automatically, preventing fires and electric shocks!',
-    voltMsg: "🛡️ MCB PANEL installed! Each breaker protects one room's circuit. When a fault happens, the MCB TRIPS in 0.01 seconds — faster than your heart can beat!",
+    info: 'The MCB Panel has separate circuit breakers for each room. If a fault occurs, the MCB trips automatically in 0.01 seconds — faster than a heartbeat — preventing fires and shocks!',
+    voltMsg: "🛡️ MCB PANEL installed! Each breaker protects one room. Trips in 0.01 seconds when a fault occurs!",
   },
   {
     title: '5. Three Essential Wires',
     icon: '🔴🔵🟢',
     color: '#f59e0b',
-    info: 'Every electrical circuit has exactly 3 wires:\n• PHASE (Red/Brown): Live wire at 240V — NEVER touch!\n• NEUTRAL (Blue): Returns current safely back to the grid.\n• EARTH (Green/Yellow): Safety wire — diverts fault current to ground, protecting you from electric shock.',
-    voltMsg: "⭐ THREE WIRES complete the circuit! Phase carries 240V, Neutral returns the current, Earth is your safety net. You've traced the complete path of electricity!",
+    info: 'Every circuit has 3 wires:\n• PHASE (Red): Live 240V — never touch!\n• NEUTRAL (Blue): Returns current to grid.\n• EARTH (Green): Safety — diverts fault current to ground!',
+    voltMsg: "⭐ THREE WIRES complete the circuit! Phase=240V Live, Neutral=return path, Earth=safety ground!",
   },
 ];
 
-/* ── Glowing wire helper ── */
-const addGlowWire = (
-  scene: THREE.Scene,
-  pts: THREE.Vector3[],
-  color: number,
-  glowing = true
-): THREE.Mesh => {
+const addGlowWire = (scene: THREE.Scene, pts: THREE.Vector3[], color: number, glowing = true): THREE.Mesh => {
   const curve = new THREE.CatmullRomCurve3(pts);
   const geo = new THREE.TubeGeometry(curve, 24, 0.07, 8, false);
   const mat = new THREE.MeshStandardMaterial({
-    color,
-    emissive: color,
-    emissiveIntensity: glowing ? 1.6 : 0.2,
-    roughness: 0.3,
+    color, emissive: color, emissiveIntensity: glowing ? 1.4 : 0.15, roughness: 0.3,
   });
   const mesh = new THREE.Mesh(geo, mat);
   scene.add(mesh);
   return mesh;
 };
 
-/* ── BUILDERS ── */
 const buildStep0 = (scene: THREE.Scene) => {
-  // Utility pole
   const pole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.22, 0.28, 13, 12),
-    new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9 })
+    new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.9 })
   );
   pole.position.set(-10, 6.5, 2);
   scene.add(pole);
-
-  // Cross arm
-  const arm = new THREE.Mesh(
-    new THREE.BoxGeometry(3.2, 0.2, 0.2),
-    new THREE.MeshStandardMaterial({ color: 0x5a3a20 })
-  );
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x6a4a30 }));
   arm.position.set(-10, 11.5, 2);
   scene.add(arm);
-
-  // Insulators
   [-0.9, 0.9].forEach(dx => {
-    const ins = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.1, 0.1, 0.35, 8),
-      new THREE.MeshStandardMaterial({ color: 0xaaaacc })
-    );
+    const ins = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x9090bb }));
     ins.position.set(-10 + dx, 11.3, 2);
     scene.add(ins);
   });
-
-  // Service wire (dark — electricity not flowing yet)
-  addGlowWire(scene, [
-    new THREE.Vector3(-10, 11.3, 2),
-    new THREE.Vector3(-7.5, 10.2, 2),
-    new THREE.Vector3(-5.5, 9.4, 2),
-  ], 0x333333, false);
+  addGlowWire(scene, [new THREE.Vector3(-10, 11.3, 2), new THREE.Vector3(-7.5, 10.2, 2), new THREE.Vector3(-5.5, 9.4, 2)], 0x555555, false);
 };
 
 const buildStep1 = (scene: THREE.Scene) => {
-  // Electric meter box
-  const box = new THREE.Mesh(
-    new THREE.BoxGeometry(1.6, 2.8, 0.9),
-    new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.3 })
-  );
-  box.position.set(-8.2, 5, 2);
-  scene.add(box);
-
-  const dial = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.55, 0.55, 0.12, 20),
-    new THREE.MeshStandardMaterial({ color: 0xecf0f1 })
-  );
+  // Visible white meter box
+  const meterBox = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.2, 0.9), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }));
+  meterBox.position.set(-8.2, 5, 2);
+  scene.add(meterBox);
+  // Display face
+  const face = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.4, 0.12), new THREE.MeshStandardMaterial({ color: 0xf0f8ff, emissive: 0xaaddff, emissiveIntensity: 0.15 }));
+  face.position.set(-8.2, 5.1, 2.5);
+  scene.add(face);
+  // Meter dial
+  const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.1, 20), new THREE.MeshStandardMaterial({ color: 0xfff0c0, emissive: 0xffee88, emissiveIntensity: 0.4 }));
   dial.rotation.x = Math.PI / 2;
-  dial.position.set(-8.2, 5.2, 2.48);
+  dial.position.set(-8.2, 5.3, 2.55);
   scene.add(dial);
-
-  const needle = new THREE.Mesh(
-    new THREE.BoxGeometry(0.06, 0.48, 0.06),
-    new THREE.MeshStandardMaterial({ color: 0xe74c3c })
-  );
-  needle.position.set(-8.2, 5.2, 2.52);
+  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.5, 0.05), new THREE.MeshStandardMaterial({ color: 0xe74c3c, emissive: 0xff0000, emissiveIntensity: 0.5 }));
+  needle.position.set(-8.2, 5.3, 2.62);
   needle.rotation.z = Math.PI / 5;
   scene.add(needle);
-
-  // Label strip (yellow bar)
-  const label = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 0.3, 0.05),
-    new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.5 })
-  );
-  label.position.set(-8.2, 3.8, 2.48);
+  // kWh label
+  const label = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.32, 0.05), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.6 }));
+  label.position.set(-8.2, 3.85, 2.53);
   scene.add(label);
-
-  // Glowing wire: pole → meter
-  addGlowWire(scene, [
-    new THREE.Vector3(-10, 11.3, 2),
-    new THREE.Vector3(-9.5, 8, 2),
-    new THREE.Vector3(-8.8, 5.8, 2),
-  ], 0xffdd00);
+  // Border frame
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(2.25, 3.25, 0.12), new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.5 }));
+  frame.position.set(-8.2, 5, 1.96);
+  scene.add(frame);
+  addGlowWire(scene, [new THREE.Vector3(-10, 11.3, 2), new THREE.Vector3(-9.5, 8, 2), new THREE.Vector3(-8.8, 5.8, 2)], 0xffdd00);
 };
 
 const buildStep2 = (scene: THREE.Scene) => {
-  // Main switch housing
-  const sw = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1.8, 0.6),
-    new THREE.MeshStandardMaterial({ color: 0xe74c3c, emissive: 0xaa0000, emissiveIntensity: 0.35 })
-  );
-  sw.position.set(-6.5, 5, 2);
+  const sw = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.9, 0.6), new THREE.MeshStandardMaterial({ color: 0xcc2222, emissive: 0xaa0000, emissiveIntensity: 0.3 }));
+  sw.position.set(-6.3, 5, 2);
   scene.add(sw);
-
-  const lever = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.9, 0.2),
-    new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.5 })
-  );
-  lever.position.set(-6.5, 5.8, 2.4);
+  const lever = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.9, 0.2), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.6 }));
+  lever.position.set(-6.3, 5.8, 2.4);
   scene.add(lever);
-
-  // Glowing wire: meter → switch
-  addGlowWire(scene, [
-    new THREE.Vector3(-8.2, 5, 2),
-    new THREE.Vector3(-7.4, 5, 2),
-    new THREE.Vector3(-7, 5, 2),
-  ], 0xffdd00);
+  addGlowWire(scene, [new THREE.Vector3(-8.2, 5, 2), new THREE.Vector3(-7.4, 5, 2), new THREE.Vector3(-6.8, 5, 2)], 0xffdd00);
 };
 
 const buildStep3 = (scene: THREE.Scene) => {
-  // MCB distribution panel
-  const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(3.5, 4.5, 0.9),
-    new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.25 })
-  );
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.5, 0.9), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.3 }));
   panel.position.set(-4, 5.2, -3.6);
   scene.add(panel);
-
-  // MCB breakers
-  const mcbColors = [0x22c55e, 0x22c55e, 0xf59e0b, 0xf59e0b, 0x3b82f6, 0x3b82f6];
+  const front = new THREE.Mesh(new THREE.BoxGeometry(3.1, 4.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+  front.position.set(-4, 5.2, -3.15);
+  scene.add(front);
+  const label = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.35, 0.05), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.5 }));
+  label.position.set(-4, 7.1, -3.12);
+  scene.add(label);
+  const colors = [0x22c55e, 0x22c55e, 0xf59e0b, 0xf59e0b, 0x3b82f6, 0x3b82f6];
   for (let i = 0; i < 6; i++) {
-    const mcb = new THREE.Mesh(
-      new THREE.BoxGeometry(0.45, 1.1, 0.5),
-      new THREE.MeshStandardMaterial({
-        color: mcbColors[i],
-        emissive: mcbColors[i],
-        emissiveIntensity: 0.4,
-      })
-    );
+    const mcb = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.1, 0.5), new THREE.MeshStandardMaterial({ color: colors[i], emissive: colors[i], emissiveIntensity: 0.4 }));
     mcb.position.set(-5.2 + i * 0.55, 5.4, -3.15);
     scene.add(mcb);
   }
-
-  // Labels on panel
-  const panelLabel = new THREE.Mesh(
-    new THREE.BoxGeometry(3.3, 0.35, 0.05),
-    new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.4 })
-  );
-  panelLabel.position.set(-4, 7.1, -3.15);
-  scene.add(panelLabel);
-
-  // Glowing wire: switch → MCB
-  addGlowWire(scene, [
-    new THREE.Vector3(-6.5, 5, 2),
-    new THREE.Vector3(-6.5, 5, -1),
-    new THREE.Vector3(-5.5, 5.2, -3.3),
-  ], 0xffdd00);
+  addGlowWire(scene, [new THREE.Vector3(-6.3, 5, 2), new THREE.Vector3(-6.3, 5, -1), new THREE.Vector3(-5.5, 5.2, -3.3)], 0xffdd00);
 };
 
 const buildStep4 = (scene: THREE.Scene) => {
   const wireColors = [0xdc2626, 0x2563eb, 0x16a34a];
-  const names = ['Phase (Live)', 'Neutral', 'Earth'];
   const yOffsets = [0.3, 0, -0.3];
-
   wireColors.forEach((col, i) => {
     addGlowWire(scene, [
       new THREE.Vector3(-4, 5.2 + yOffsets[i], -3.2),
@@ -217,27 +140,21 @@ const buildStep4 = (scene: THREE.Scene) => {
       new THREE.Vector3(2, 7.5, -3.5),
       new THREE.Vector3(6, 7.5, -3.5),
     ], col);
-
-    // Label dot above wire end
-    const dot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 8, 8),
-      new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.5 })
-    );
-    dot.position.set(6, 7.7, -3.5);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 1.5 }));
+    dot.position.set(6, 7.8 + yOffsets[i], -3.5);
     scene.add(dot);
   });
 };
 
 const BUILDERS = [buildStep0, buildStep1, buildStep2, buildStep3, buildStep4];
 
-/* ── Component ── */
 export const Level5House = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { setVoltMessage, setLevelComplete, addScore, addStar } = useGameStore();
   const [step, setStep] = useState(0);
+  const [showWireSummary, setShowWireSummary] = useState(false);
   const sceneRef = useRef<THREE.Scene | null>(null);
 
-  /* ── One-time scene init ── */
   useEffect(() => {
     setVoltMessage(STEPS[0].voltMsg);
     if (!containerRef.current) return;
@@ -245,67 +162,72 @@ export const Level5House = () => {
     const { scene, camera, renderer, controls, cleanup } = initBasicScene(containerRef.current);
     sceneRef.current = scene;
 
-    scene.background = new THREE.Color(0xc8e4f8);
-    scene.fog = new THREE.FogExp2(0xc8e4f8, 0.016);
+    scene.background = new THREE.Color(0xd0eaf8);
+    scene.fog = new THREE.FogExp2(0xd0eaf8, 0.012);
     camera.position.set(0, 10, 24);
     camera.fov = 52;
     camera.updateProjectionMatrix();
     controls.target.set(0, 4, 0);
 
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf5efe6, roughness: 0.7 });
-
     // Grass
-    const grass = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 40),
-      new THREE.MeshStandardMaterial({ color: 0x6ab04c, roughness: 0.9 })
-    );
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(60, 40), new THREE.MeshStandardMaterial({ color: 0x7cc05a, roughness: 0.9 }));
     grass.rotation.x = -Math.PI / 2;
     grass.position.y = -0.15;
-    grass.receiveShadow = true;
     scene.add(grass);
 
-    // Floor
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(16, 0.35, 8),
-      new THREE.MeshStandardMaterial({ color: 0xe8d5b7, roughness: 0.8 })
-    );
-    floor.position.set(0, 0, 0);
-    floor.receiveShadow = true;
-    scene.add(floor);
+    // ── Modern house ──
+    // Concrete floor slab
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 9), new THREE.MeshStandardMaterial({ color: 0xd8cfc0, roughness: 0.7 }));
+    slab.position.set(0, 0, 0);
+    scene.add(slab);
 
-    // Walls
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf7f3ee, roughness: 0.55, metalness: 0.02 });
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0xd5c8ba, roughness: 0.7 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x8ec8e8, transparent: true, opacity: 0.35, metalness: 0.2 });
+
     const addBox = (w: number, h: number, d: number, x: number, y: number, z: number, mat = wallMat) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
       m.position.set(x, y, z);
       m.castShadow = true;
       m.receiveShadow = true;
       scene.add(m);
+      return m;
     };
-    addBox(16, 8, 0.5, 0, 4.25, -3.75);
-    addBox(0.5, 8, 8, -7.75, 4.25, 0);
-    addBox(0.5, 8, 8, 7.75, 4.25, 0);
-    addBox(0.2, 8, 5, -2, 4.25, -0.75);
-    addBox(0.2, 8, 5, 3, 4.25, -0.75);
 
-    // Roof
-    const roof = new THREE.Mesh(
-      new THREE.ConeGeometry(12, 4, 4),
-      new THREE.MeshStandardMaterial({ color: 0xb03020 })
-    );
-    roof.rotation.y = Math.PI / 4;
-    roof.position.set(0, 10.25, 0);
-    roof.castShadow = true;
-    scene.add(roof);
+    // Walls
+    addBox(16, 7.5, 0.4, 0, 4.05, -4.2); // back wall
+    addBox(0.4, 7.5, 9, -8, 4.05, 0);    // left wall
+    addBox(0.4, 7.5, 9, 8, 4.05, 0);     // right wall
+    addBox(3, 7.5, 0.35, -2.5, 4.05, -0.5, concreteMat); // interior divider L
+    addBox(3, 7.5, 0.35, 3.5, 4.05, -0.5, concreteMat);  // interior divider R
 
-    // Front porch step
-    const porch = new THREE.Mesh(
-      new THREE.BoxGeometry(4, 0.4, 1.5),
-      new THREE.MeshStandardMaterial({ color: 0xd4c0a0, roughness: 0.9 })
-    );
-    porch.position.set(0, 0.2, 4.5);
-    scene.add(porch);
+    // FLAT modern roof — with slight overhang
+    addBox(17.5, 0.5, 10.5, 0, 8.05, 0, new THREE.MeshStandardMaterial({ color: 0x607080, roughness: 0.5, metalness: 0.1 }));
+    // Parapet walls (low walls on roof perimeter)
+    addBox(17.6, 0.8, 0.25, 0, 8.7, -5.1, new THREE.MeshStandardMaterial({ color: 0x777060, roughness: 0.6 }));
+    addBox(17.6, 0.8, 0.25, 0, 8.7, 5.1, new THREE.MeshStandardMaterial({ color: 0x777060, roughness: 0.6 }));
 
-    // Build step 0 immediately
+    // Large modern windows (glass)
+    addBox(3.5, 2.8, 0.25, -5, 4.2, 4.4, glassMat); // front left window
+    addBox(3.5, 2.8, 0.25, 3, 4.2, 4.4, glassMat);  // front right window
+    // Window frames
+    addBox(3.7, 3.0, 0.15, -5, 4.2, 4.3, new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 }));
+    addBox(3.7, 3.0, 0.15, 3, 4.2, 4.3, new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 }));
+    // Window behind glass
+    addBox(3.4, 2.7, 0.25, -5, 4.2, 4.45, glassMat);
+    addBox(3.4, 2.7, 0.25, 3, 4.2, 4.45, glassMat);
+
+    // Front door
+    addBox(1.8, 3.5, 0.2, 0, 2.05, 4.4, new THREE.MeshStandardMaterial({ color: 0x3b5278, roughness: 0.3, metalness: 0.3 }));
+    // Door handle
+    addBox(0.08, 0.08, 0.2, 0.7, 2.0, 4.55, new THREE.MeshStandardMaterial({ color: 0xddbb44, metalness: 0.9, roughness: 0.1 }));
+
+    // Pathway
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 6), new THREE.MeshStandardMaterial({ color: 0xc0b8a0, roughness: 0.9 }));
+    path.rotation.x = -Math.PI / 2;
+    path.position.set(0, -0.12, 7.5);
+    scene.add(path);
+
     BUILDERS[0](scene);
 
     let frameId: number;
@@ -316,23 +238,18 @@ export const Level5House = () => {
     };
     animate();
 
-    return () => {
-      cancelAnimationFrame(frameId);
-      cleanup();
-      sceneRef.current = null;
-    };
+    return () => { cancelAnimationFrame(frameId); cleanup(); sceneRef.current = null; };
   }, []);
 
-  /* ── Build each step progressively ── */
   useEffect(() => {
     if (step === 0) return;
     const scene = sceneRef.current;
     if (!scene) return;
     BUILDERS[step](scene);
     setVoltMessage(STEPS[step].voltMsg);
-
     if (step === BUILDERS.length - 1) {
-      setLevelComplete(true);
+      // Don't auto-complete — show wire summary first
+      setShowWireSummary(true);
       addScore(100);
       addStar();
     }
@@ -340,16 +257,18 @@ export const Level5House = () => {
 
   const currentStep = STEPS[step];
 
+  const handleComplete = () => {
+    setLevelComplete(true);
+  };
+
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="absolute inset-0 z-0" />
 
-      {/* Right panel */}
       <div
-        className="absolute right-3 top-14 z-10 flex flex-col gap-3 pointer-events-auto"
-        style={{ width: 'clamp(215px, 24vw, 290px)' }}
+        className="absolute right-3 top-14 bottom-3 z-10 flex flex-col gap-3 pointer-events-auto overflow-y-auto"
+        style={{ width: 'clamp(215px, 24vw, 295px)', paddingBottom: '0.25rem' }}
       >
-        {/* Current step explanation */}
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -361,38 +280,19 @@ export const Level5House = () => {
             <InfoCard
               title={currentStep.title}
               icon={currentStep.icon}
-              colorClass={step === 0 ? 'from-blue-700 to-blue-500'
+              colorClass={
+                step === 0 ? 'from-blue-700 to-blue-500'
                 : step === 1 ? 'from-violet-700 to-violet-500'
                 : step === 2 ? 'from-red-700 to-red-500'
                 : step === 3 ? 'from-emerald-700 to-emerald-500'
-                : 'from-amber-600 to-yellow-500'}
+                : 'from-amber-600 to-yellow-500'
+              }
             >
               <p className="leading-snug" style={{ whiteSpace: 'pre-line' }}>{currentStep.info}</p>
             </InfoCard>
           </motion.div>
         </AnimatePresence>
 
-        {/* Volt robot inline for levels 5+ */}
-        <div
-          className="game-panel flex items-start gap-3"
-          style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', border: '1.5px solid rgba(0,194,255,0.25)' }}
-        >
-          <div
-            style={{
-              background: 'linear-gradient(135deg,#1e40af,#0ea5e9)',
-              borderRadius: '50%',
-              width: 42, height: 42,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.4rem', flexShrink: 0,
-              boxShadow: '0 0 14px rgba(0,194,255,0.5)',
-            }}
-          >🤖</div>
-          <p className="font-medium leading-snug" style={{ fontSize: '0.82rem', color: '#e2e8f0' }}>
-            {currentStep.voltMsg}
-          </p>
-        </div>
-
-        {/* Progress tracker */}
         <div className="game-panel">
           <h3 className="font-display font-bold text-slate-700 mb-3" style={{ fontSize: '0.92rem' }}>
             Electricity Path
@@ -415,7 +315,6 @@ export const Level5House = () => {
             ))}
           </div>
 
-          {/* Electricity flow indicator */}
           <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-lg" style={{ background: '#f8fafc' }}>
             {['🔌', '📊', '🔴', '🛡️', '⚡'].map((icon, i) => (
               <React.Fragment key={i}>
@@ -440,32 +339,60 @@ export const Level5House = () => {
               Next Step ➡
             </motion.button>
           ) : (
-            <div className="text-center py-2.5 rounded-xl font-display font-bold" style={{ background: '#f0fdf4', color: '#059669' }}>
-              ⭐ Electricity enters your home!
+            <div className="text-center py-2 rounded-xl font-display font-bold" style={{ background: '#f0fdf4', color: '#059669', fontSize: '0.88rem' }}>
+              ⭐ All 5 steps complete!
             </div>
           )}
         </div>
 
-        {/* Wire legend — shows on last step */}
-        {step === STEPS.length - 1 && (
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="game-panel"
-          >
-            <h4 className="font-display font-bold text-slate-700 mb-2" style={{ fontSize: '0.88rem' }}>3-Wire System</h4>
-            {[
-              { bg: '#fee2e2', dot: '#dc2626', text: 'Phase — 240V LIVE!', textCol: '#991b1b' },
-              { bg: '#dbeafe', dot: '#2563eb', text: 'Neutral — Return Path', textCol: '#1e40af' },
-              { bg: '#dcfce7', dot: '#16a34a', text: 'Earth — Safety Ground', textCol: '#15803d' },
-            ].map((w) => (
-              <div key={w.text} className="flex items-center gap-2 rounded-lg px-2 py-1.5 mb-1.5" style={{ background: w.bg }}>
-                <div className="rounded-full flex-shrink-0" style={{ width: 12, height: 12, background: w.dot, boxShadow: `0 0 6px ${w.dot}` }} />
-                <span className="font-bold" style={{ color: w.textCol, fontSize: '0.82rem' }}>{w.text}</span>
+        {/* Wire summary — shown on last step before level complete */}
+        <AnimatePresence>
+          {showWireSummary && (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="game-panel"
+              style={{ border: '2px solid #fbbf24' }}
+            >
+              <h4 className="font-display font-bold text-slate-700 mb-2" style={{ fontSize: '0.92rem' }}>
+                🔴🔵🟢 3-Wire System
+              </h4>
+              {[
+                { bg: '#fee2e2', dot: '#dc2626', text: 'PHASE — 240V Live!', sub: 'Never touch this wire!', textCol: '#991b1b' },
+                { bg: '#dbeafe', dot: '#2563eb', text: 'NEUTRAL — Return Path', sub: 'Completes the circuit safely', textCol: '#1e40af' },
+                { bg: '#dcfce7', dot: '#16a34a', text: 'EARTH — Safety Ground', sub: 'Diverts fault current', textCol: '#15803d' },
+              ].map((w) => (
+                <div key={w.text} className="flex items-start gap-2 rounded-xl px-2.5 py-2 mb-1.5" style={{ background: w.bg }}>
+                  <div className="rounded-full flex-shrink-0 mt-0.5" style={{ width: 13, height: 13, background: w.dot, boxShadow: `0 0 6px ${w.dot}` }} />
+                  <div>
+                    <span className="font-bold" style={{ color: w.textCol, fontSize: '0.82rem' }}>{w.text}</span>
+                    <p style={{ color: w.textCol, fontSize: '0.72rem', opacity: 0.75 }}>{w.sub}</p>
+                  </div>
+                </div>
+              ))}
+
+              <div className="px-3 py-2 rounded-xl mt-2 mb-3" style={{ background: '#fefce8', border: '1.5px solid #fde047' }}>
+                <p className="font-bold text-amber-700" style={{ fontSize: '0.78rem' }}>
+                  💡 Each wire runs from the MCB panel to every socket and light fitting in your home!
+                </p>
               </div>
-            ))}
-          </motion.div>
-        )}
+
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={handleComplete}
+                className="w-full py-3 rounded-xl font-display font-bold text-white"
+                style={{
+                  background: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+                  fontSize: '1rem',
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.4)',
+                }}
+              >
+                🔌 Wire the House →
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,367 +1,413 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { initBasicScene } from '../../utils/three-helpers';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore } from '../../store/game-store';
-import { InfoCard } from '../GameUI';
 
-const APPLIANCES = [
+const ROOMS = [
   {
-    id: 'bulb',
-    name: 'LED Bulb',
-    watts: 9,
-    icon: '💡',
-    fact: 'LED bulbs use 90% less energy than old incandescent bulbs!',
-    color: '#fbbf24',
-    emissiveHex: 0xffee44,
-    pos: [-8, 3.5, 0] as [number, number, number],
-    baseColor: 0x888866,
+    id: 'hall',
+    name: 'Hall',
+    icon: '🛋',
+    color: '#3b82f6',
+    appliances: [
+      { id: 'hall_bulb', name: 'Bulb',        icon: '💡', watts: 9,   type: 'light', pos: [-4, 4.7, 1]   as [number,number,number] },
+      { id: 'hall_fan',  name: 'Ceiling Fan', icon: '🌀', watts: 70,  type: 'fan',   pos: [-4, 4.65, 3]  as [number,number,number] },
+      { id: 'hall_tv',   name: 'TV',          icon: '📺', watts: 120, type: 'tv',    pos: [-4, 2.5, -6.8] as [number,number,number] },
+    ],
   },
   {
-    id: 'fan',
-    name: 'Ceiling Fan',
-    watts: 70,
-    icon: '🌀',
-    fact: 'Ceiling fans use much less energy than air conditioners — about 70W vs 2000W!',
-    color: '#60a5fa',
-    emissiveHex: 0x2266cc,
-    pos: [-3, 3.5, 0] as [number, number, number],
-    baseColor: 0x778899,
+    id: 'kitchen',
+    name: 'Kitchen',
+    icon: '🍳',
+    color: '#f97316',
+    appliances: [
+      { id: 'kit_bulb',   name: 'Bulb',            icon: '💡', watts: 9,   type: 'light',  pos: [0, 4.7, -3.5]  as [number,number,number] },
+      { id: 'kit_fridge', name: 'Refrigerator',    icon: '❄️', watts: 300, type: 'fridge', pos: [0.5, 2.25, -5.5] as [number,number,number] },
+      { id: 'kit_washer', name: 'Washing Machine', icon: '🌊', watts: 500, type: 'washer', pos: [-2.5, 1.1, -5.5] as [number,number,number] },
+    ],
   },
   {
-    id: 'tv',
-    name: 'Television',
-    watts: 120,
-    icon: '📺',
-    fact: 'TVs have standby mode which still uses power even when "off"!',
-    color: '#818cf8',
-    emissiveHex: 0x1a44cc,
-    pos: [3, 2, 0] as [number, number, number],
-    baseColor: 0x222222,
-  },
-  {
-    id: 'fridge',
-    name: 'Refrigerator',
-    watts: 300,
-    icon: '❄️',
-    fact: 'Fridges run 24/7 — keeping them full actually makes them more efficient!',
-    color: '#67e8f9',
-    emissiveHex: 0x00ffff,
-    pos: [9, 2.5, 0] as [number, number, number],
-    baseColor: 0xdddddd,
-  },
-  {
-    id: 'washer',
-    name: 'Washing Machine',
-    watts: 500,
-    icon: '🌊',
-    fact: 'Washing with cold water saves about 90% of the energy used by a washing machine!',
-    color: '#6ee7b7',
-    emissiveHex: 0x00eebb,
-    pos: [15, 1.25, 0] as [number, number, number],
-    baseColor: 0xf0f0f0,
+    id: 'bedroom',
+    name: 'Bedroom',
+    icon: '🛏',
+    color: '#8b5cf6',
+    appliances: [
+      { id: 'bed_bulb', name: 'Bulb',        icon: '💡', watts: 9,   type: 'light', pos: [5, 4.7, 2.5]  as [number,number,number] },
+      { id: 'bed_fan',  name: 'Ceiling Fan', icon: '🌀', watts: 70,  type: 'fan',   pos: [5, 4.65, 3.5] as [number,number,number] },
+      { id: 'bed_tv',   name: 'TV',          icon: '📺', watts: 120, type: 'tv',    pos: [5, 2.4, -6.8]  as [number,number,number] },
+    ],
   },
 ];
+
+const ALL = ROOMS.flatMap(r => r.appliances);
+const TOTAL = ALL.length;
+const TARGET_KWH = 0.5;
 
 export const Level7Consumption = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { setVoltMessage, setLevelComplete, addScore, addStar } = useGameStore();
-  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
-  const meshesRef = useRef<Record<string, THREE.Mesh>>({});
-  const pointLightsRef = useRef<Record<string, THREE.PointLight>>({});
-  const activeRef = useRef<Set<string>>(new Set());
+  const [switchStates, setSwitchStates] = useState<Record<string, boolean>>({});
+  const [kwh, setKwh] = useState(0);
+  const objectsRef = useRef<Record<string, any>>({});
+  const lightsRef = useRef<Map<string, THREE.PointLight>>(new Map());
+  const fanRefs = useRef<{ hall: THREE.Group | null; bed: THREE.Group | null }>({ hall: null, bed: null });
   const completedRef = useRef(false);
+  const activeRef = useRef<Record<string, boolean>>({});
 
-  const totalWatts = Array.from(activeIds).reduce((sum, id) => {
-    return sum + (APPLIANCES.find(a => a.id === id)?.watts ?? 0);
-  }, 0);
+  const totalWatts = Object.entries(switchStates)
+    .filter(([, on]) => on)
+    .reduce((sum, [id]) => {
+      const app = ALL.find(a => a.id === id);
+      return app ? sum + app.watts : sum;
+    }, 0);
 
-  const toggleAppliance = (id: string) => {
-    setActiveIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        const app = APPLIANCES.find(a => a.id === id)!;
-        setVoltMessage(`📴 ${app.name} switched OFF. Saving ${app.watts}W! ${app.fact}`);
+  const onCount = Object.values(switchStates).filter(Boolean).length;
+
+  // kWh accumulator — ticks up based on active watts
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (totalWatts > 0) {
+        setKwh(k => {
+          const next = parseFloat((k + (totalWatts / 1000) / 3600 * 2).toFixed(4));
+          if (next >= TARGET_KWH && !completedRef.current) {
+            completedRef.current = true;
+            setLevelComplete(true);
+            addStar();
+            setVoltMessage('⭐ You used ' + next.toFixed(3) + ' kWh! Great job learning about power consumption!');
+          }
+          return next;
+        });
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [totalWatts]);
+
+  const toggle = useCallback((id: string) => {
+    setSwitchStates(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      activeRef.current = next;
+      const app = ALL.find(a => a.id === id)!;
+      if (next[id]) {
+        addScore(10);
+        setVoltMessage(`💡 ${app.name} is ON! Drawing ${app.watts}W. Watch the kWh meter climb!`);
       } else {
-        next.add(id);
-        addScore(20);
-        const app = APPLIANCES.find(a => a.id === id)!;
-        setVoltMessage(`⚡ ${app.name} is ON! Using ${app.watts} Watts. ${app.fact}`);
+        setVoltMessage(`📴 ${app.name} OFF — saving ${app.watts}W!`);
       }
 
-      activeRef.current = next;
-
-      if (next.size === APPLIANCES.length && !completedRef.current) {
-        completedRef.current = true;
-        const tw = APPLIANCES.reduce((s, a) => s + a.watts, 0);
-        setVoltMessage(`⭐ ALL ${APPLIANCES.length} appliances ON! Total: ${tw}W = about ${(tw / 240).toFixed(1)}A from your MCB panel. Great job!`);
-        setLevelComplete(true);
-        addStar();
+      // Update 3D
+      const scene = objectsRef.current.__scene as THREE.Scene;
+      if (scene) {
+        const bulb = objectsRef.current[`bulb_${id}`];
+        if (bulb) {
+          const mat = bulb.material as THREE.MeshStandardMaterial;
+          mat.emissive.setHex(next[id] ? 0xffee44 : 0x000000);
+          mat.emissiveIntensity = next[id] ? 1.4 : 0;
+          const lightKey = `pl_${id}`;
+          if (next[id] && !lightsRef.current.has(lightKey)) {
+            const pl = new THREE.PointLight(0xffeebb, 2.5, 12);
+            pl.position.copy(bulb.position);
+            scene.add(pl);
+            lightsRef.current.set(lightKey, pl);
+          } else if (!next[id] && lightsRef.current.has(lightKey)) {
+            scene.remove(lightsRef.current.get(lightKey)!);
+            lightsRef.current.delete(lightKey);
+          }
+        }
+        const tvScreen = objectsRef.current[`tvScreen_${id}`];
+        if (tvScreen) {
+          (tvScreen.material as THREE.MeshStandardMaterial).emissive.setHex(next[id] ? 0x1a44cc : 0x000000);
+          (tvScreen.material as THREE.MeshStandardMaterial).emissiveIntensity = next[id] ? 1.4 : 0;
+        }
       }
       return next;
     });
-  };
+  }, [addScore, setVoltMessage]);
 
   useEffect(() => {
-    APPLIANCES.forEach(app => {
-      const mesh = meshesRef.current[app.id];
-      if (!mesh) return;
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      const on = activeIds.has(app.id);
-      mat.emissive.setHex(on ? app.emissiveHex : 0x000000);
-      mat.emissiveIntensity = on ? 1.2 : 0;
-
-      const pl = pointLightsRef.current[app.id];
-      if (pl) pl.intensity = on ? 3 : 0;
-
-      const wire = meshesRef.current[app.id + '_wire'];
-      if (wire) {
-        const wireMat = wire.material as THREE.MeshStandardMaterial;
-        wireMat.color.setHex(on ? app.emissiveHex : 0x9ca3af);
-        wireMat.emissive.setHex(on ? app.emissiveHex : 0x000000);
-        wireMat.emissiveIntensity = on ? 1.2 : 0;
-      }
-    });
-  }, [activeIds]);
-
-  useEffect(() => {
-    setVoltMessage("💡 Power Consumption Level! Switch on each appliance and watch your energy meter rise. Energy = Power × Time!");
+    setVoltMessage("⚡ Toggle appliances ON to see how much power each uses. Watch the energy meter count up!");
     if (!containerRef.current) return;
+
     const { scene, camera, renderer, controls, cleanup } = initBasicScene(containerRef.current);
+    objectsRef.current.__scene = scene;
 
-    scene.background = new THREE.Color(0xfafafa);
-    scene.fog = undefined;
-    camera.position.set(4, 10, 22);
-    controls.target.set(4, 2, 0);
+    scene.background = new THREE.Color(0xf0f4f8);
+    camera.position.set(18, 20, 18);
+    controls.target.set(0, 2, 0);
+    controls.maxPolarAngle = Math.PI / 2.2;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-    scene.add(ambientLight);
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ color: 0x8fca6a, roughness: 0.9 }));
+    grass.rotation.x = -Math.PI / 2;
+    grass.position.y = -0.05;
+    scene.add(grass);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(10, 20, 10);
-    scene.add(dirLight);
-
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 20),
-      new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.8 })
-    );
-    floor.rotation.x = -Math.PI / 2;
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(18, 0.25, 14), new THREE.MeshStandardMaterial({ color: 0xede5d8, roughness: 0.85 }));
+    floor.position.set(0, 0.12, 0);
     scene.add(floor);
 
-    const wallBack = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 12),
-      new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.9 })
-    );
-    wallBack.position.set(4, 5, -3);
-    scene.add(wallBack);
-
-    const platformMat = new THREE.MeshStandardMaterial({ color: 0xdde1e7, roughness: 0.7 });
-
-    APPLIANCES.forEach(app => {
-      const platform = new THREE.Mesh(
-        new THREE.BoxGeometry(3.8, 0.15, 2),
-        platformMat
-      );
-      platform.position.set(app.pos[0], 0.08, app.pos[2]);
-      scene.add(platform);
-
-      let geo: THREE.BufferGeometry;
-      if (app.id === 'bulb') geo = new THREE.SphereGeometry(0.9, 16, 16);
-      else if (app.id === 'fan') geo = new THREE.CylinderGeometry(2.0, 2.0, 0.18, 20);
-      else if (app.id === 'tv') geo = new THREE.BoxGeometry(3.8, 2.4, 0.4);
-      else if (app.id === 'fridge') geo = new THREE.BoxGeometry(2.3, 5, 2);
-      else geo = new THREE.BoxGeometry(2, 2.4, 2);
-
-      const mat = new THREE.MeshStandardMaterial({
-        color: app.baseColor,
-        emissive: 0x000000,
-        emissiveIntensity: 0,
-        roughness: 0.5,
-        metalness: 0.2,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(...app.pos);
-      mesh.castShadow = true;
-      scene.add(mesh);
-      meshesRef.current[app.id] = mesh;
-
-      const lightColor = new THREE.Color(app.color);
-      const pl = new THREE.PointLight(lightColor, 0, 12);
-      pl.position.set(app.pos[0], app.pos[1] + 3, app.pos[2] + 1);
-      scene.add(pl);
-      pointLightsRef.current[app.id] = pl;
-    });
-
-    const mcbBox = new THREE.Mesh(
-      new THREE.BoxGeometry(3, 5, 0.5),
-      new THREE.MeshStandardMaterial({ color: 0x374151 })
-    );
-    mcbBox.position.set(-14, 3, 0);
-    scene.add(mcbBox);
-    for (let i = 0; i < APPLIANCES.length; i++) {
-      const m = new THREE.Mesh(
-        new THREE.BoxGeometry(0.38, 0.85, 0.4),
-        new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.4 })
-      );
-      m.position.set(-14.5 + i * 0.46, 3.2, 0.55);
+    const wall = (w: number, h: number, d: number, x: number, y: number, z: number, color = 0xf8f5f0) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: 0.8 }));
+      m.position.set(x, y, z);
+      m.castShadow = true;
       scene.add(m);
+    };
+    wall(18, 5, 0.3, 0, 2.5, -7);
+    wall(0.3, 5, 14, -9, 2.5, 0);
+    wall(0.3, 5, 14, 9, 2.5, 0);
+    wall(7, 5, 0.3, -5, 2.5, 0, 0xedeae6);
+    wall(7, 5, 0.3, 5, 2.5, 0, 0xedeae6);
+
+    // Room floors
+    const rf = (color: number, x: number, z: number, w: number, d: number) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ color, roughness: 0.9 }));
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(x, 0.26, z);
+      scene.add(m);
+    };
+    rf(0xe8dfd0, -4, 0, 8, 12);
+    rf(0xe0e8e0, 0, -3.5, 8, 7);
+    rf(0xe8e0f0, 5, 0, 8, 14);
+
+    // Hall
+    const couch = new THREE.Mesh(new THREE.BoxGeometry(5, 0.8, 2), new THREE.MeshStandardMaterial({ color: 0x9b6a4a }));
+    couch.position.set(-4, 0.65, 4);
+    scene.add(couch);
+    const couchBack = new THREE.Mesh(new THREE.BoxGeometry(5, 1.6, 0.4), new THREE.MeshStandardMaterial({ color: 0x8a5a3a }));
+    couchBack.position.set(-4, 1.25, 4.9);
+    scene.add(couchBack);
+
+    const hallBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshStandardMaterial({ color: 0xccccaa }));
+    hallBulb.position.set(-4, 4.7, 1);
+    scene.add(hallBulb);
+    objectsRef.current['bulb_hall_bulb'] = hallBulb;
+
+    const hallFan = new THREE.Group();
+    const hallFanHub = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.3, 12), new THREE.MeshStandardMaterial({ color: 0x888877 }));
+    for (let i = 0; i < 4; i++) {
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.07, 0.6), new THREE.MeshStandardMaterial({ color: 0xb09878 }));
+      blade.position.x = 1.3;
+      const piv = new THREE.Group();
+      piv.rotation.y = (Math.PI / 2) * i;
+      piv.add(blade);
+      hallFan.add(piv);
     }
+    hallFan.add(hallFanHub);
+    hallFan.position.set(-4, 4.65, 3);
+    scene.add(hallFan);
+    fanRefs.current.hall = hallFan;
 
-    const mcbLabel = new THREE.Mesh(
-      new THREE.BoxGeometry(2.5, 0.3, 0.1),
-      new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.6 })
-    );
-    mcbLabel.position.set(-14, 5.8, 0.55);
-    scene.add(mcbLabel);
+    const hallTvFrame = new THREE.Mesh(new THREE.BoxGeometry(4, 2.5, 0.22), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+    const hallTvScreen = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.1, 0.26), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+    hallTvScreen.position.z = 0.02;
+    const hallTvGrp = new THREE.Group();
+    hallTvGrp.add(hallTvFrame, hallTvScreen);
+    hallTvGrp.position.set(-4, 2.5, -6.8);
+    scene.add(hallTvGrp);
+    objectsRef.current['tvScreen_hall_tv'] = hallTvScreen;
 
-    APPLIANCES.forEach(app => {
-      const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-14, 5.5, 0),
-        new THREE.Vector3(-4, 8, 0),
-        new THREE.Vector3(app.pos[0], 7.5, 0),
-        new THREE.Vector3(app.pos[0], app.pos[1] + (app.id === 'bulb' ? 2 : 1), 0),
-      ]);
-      const wireMesh = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, 24, 0.06, 6, false),
-        new THREE.MeshStandardMaterial({ color: 0x9ca3af, emissive: 0x000000, emissiveIntensity: 0, roughness: 0.5 })
-      );
-      scene.add(wireMesh);
-      meshesRef.current[app.id + '_wire'] = wireMesh;
-    });
+    // Bedroom
+    const bedBase = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 5), new THREE.MeshStandardMaterial({ color: 0xd4c4a8 }));
+    bedBase.position.set(5, 0.5, 2);
+    scene.add(bedBase);
+    const bedHead = new THREE.Mesh(new THREE.BoxGeometry(4, 1.5, 0.3), new THREE.MeshStandardMaterial({ color: 0xb8a080 }));
+    bedHead.position.set(5, 1.1, -0.2);
+    scene.add(bedHead);
 
-    let frame: number;
+    const bedBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshStandardMaterial({ color: 0xccccaa }));
+    bedBulb.position.set(5, 4.7, 2.5);
+    scene.add(bedBulb);
+    objectsRef.current['bulb_bed_bulb'] = bedBulb;
+
+    const bedFan = new THREE.Group();
+    const bedFanHub = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.3, 12), new THREE.MeshStandardMaterial({ color: 0x888877 }));
+    for (let i = 0; i < 4; i++) {
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.07, 0.55), new THREE.MeshStandardMaterial({ color: 0xb09878 }));
+      blade.position.x = 1.2;
+      const piv = new THREE.Group();
+      piv.rotation.y = (Math.PI / 2) * i;
+      piv.add(blade);
+      bedFan.add(piv);
+    }
+    bedFan.add(bedFanHub);
+    bedFan.position.set(5, 4.65, 3.5);
+    scene.add(bedFan);
+    fanRefs.current.bed = bedFan;
+
+    const bedTvFrame = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.2, 0.22), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+    const bedTvScreen = new THREE.Mesh(new THREE.BoxGeometry(3.1, 1.8, 0.26), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+    bedTvScreen.position.z = 0.02;
+    const bedTvGrp = new THREE.Group();
+    bedTvGrp.add(bedTvFrame, bedTvScreen);
+    bedTvGrp.position.set(5, 2.4, -6.8);
+    scene.add(bedTvGrp);
+    objectsRef.current['tvScreen_bed_tv'] = bedTvScreen;
+
+    // Kitchen
+    const fridgeBody = new THREE.Mesh(new THREE.BoxGeometry(2, 4.5, 2), new THREE.MeshStandardMaterial({ color: 0xe0e0e0, metalness: 0.3 }));
+    fridgeBody.position.set(0.5, 2.25, -5.5);
+    scene.add(fridgeBody);
+    const kitBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshStandardMaterial({ color: 0xccccaa }));
+    kitBulb.position.set(0, 4.7, -3.5);
+    scene.add(kitBulb);
+    objectsRef.current['bulb_kit_bulb'] = kitBulb;
+    const washerBody = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 2), new THREE.MeshStandardMaterial({ color: 0xf4f4f4 }));
+    washerBody.position.set(-2.5, 1.1, -5.5);
+    scene.add(washerBody);
+    const washerDoor = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.14, 20), new THREE.MeshStandardMaterial({ color: 0xaaaacc, metalness: 0.4 }));
+    washerDoor.rotation.x = Math.PI / 2;
+    washerDoor.position.set(-2.5, 1.2, -4.45);
+    scene.add(washerDoor);
+
+    let frameId: number;
     const animate = () => {
-      frame = requestAnimationFrame(animate);
-      const active = activeRef.current;
-      if (active.has('fan') && meshesRef.current['fan']) {
-        meshesRef.current['fan'].rotation.y += 0.12;
-      }
-      if (active.has('washer') && meshesRef.current['washer']) {
-        meshesRef.current['washer'].position.x = 15 + Math.sin(Date.now() / 60) * 0.05;
-      }
+      frameId = requestAnimationFrame(animate);
+      const act = activeRef.current;
+      if (act['hall_fan'] && fanRefs.current.hall) fanRefs.current.hall.rotation.y += 0.05;
+      if (act['bed_fan'] && fanRefs.current.bed) fanRefs.current.bed.rotation.y += 0.04;
       controls.update();
       renderer.render(scene, camera);
     };
     animate();
 
-    return () => { frame && cancelAnimationFrame(frame); cleanup(); };
+    return () => { cancelAnimationFrame(frameId); cleanup(); };
   }, []);
-
-  const maxWatts = APPLIANCES.reduce((s, a) => s + a.watts, 0);
-  const powerPercent = Math.min(100, (totalWatts / maxWatts) * 100);
 
   return (
     <div className="w-full h-full relative overflow-hidden">
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,#f0f4f8 0%,#e8eef4 100%)' }} />
       <div ref={containerRef} className="absolute inset-0 z-0" />
 
+      {/* Right panel — narrow, scrollable */}
       <div
-        className="absolute right-3 top-14 z-10 flex flex-col gap-3 pointer-events-auto"
-        style={{ width: 'clamp(220px, 24vw, 300px)' }}
+        className="absolute right-0 top-0 bottom-0 z-10 flex flex-col pointer-events-auto overflow-y-auto"
+        style={{ width: 'clamp(200px, 25vw, 280px)', background: 'rgba(255,255,255,0.97)', borderLeft: '1px solid #e2e8f0', boxShadow: '-4px 0 20px rgba(0,0,0,0.08)' }}
       >
-        <InfoCard title="Power Consumption" icon="📊" colorClass="from-pink-600 to-rose-500">
-          <p>Power is measured in <strong>Watts (W)</strong>. Different devices use very different amounts!</p>
-          <p><strong>Energy = Power × Time.</strong> Run 1000W for 1 hour = 1 kWh on your bill.</p>
-          <div className="mt-1 px-3 py-2 rounded-xl" style={{ background: '#fefce8', border: '2px solid #fde047' }}>
-            <code className="font-bold text-amber-700" style={{ fontSize: '0.9rem' }}>1 kWh = 1000 W × 1 hour</code>
+        {/* Volt tip bar */}
+        <div className="px-3 py-2 flex items-start gap-2" style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9', minHeight: 52 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#60a5fa)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.85rem' }}>
+            🤖
           </div>
-        </InfoCard>
-
-        <div className="game-panel !p-0 overflow-hidden">
-          <div className="px-4 py-2.5 font-display font-bold text-white flex items-center justify-between"
-            style={{ background: 'linear-gradient(135deg,#ec4899,#db2777)', fontSize: '0.95rem' }}
-          >
-            <span>⚡ Energy Meter</span>
-            <span style={{ color: activeIds.size === APPLIANCES.length ? '#bbf7d0' : 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>
-              {activeIds.size}/{APPLIANCES.length} ON
-            </span>
-          </div>
-          <div className="p-3">
-            <div className="text-center mb-2">
-              <motion.span
-                key={totalWatts}
-                initial={{ scale: 1.2 }}
-                animate={{ scale: 1 }}
-                className="font-mono font-bold"
-                style={{ fontSize: '2.2rem', color: totalWatts > 600 ? '#ef4444' : '#ec4899' }}
-              >
-                {totalWatts.toString().padStart(4, '0')}
-              </motion.span>
-              <span className="font-mono font-bold text-slate-400" style={{ fontSize: '1.1rem' }}> W</span>
-            </div>
-
-            <div className="rounded-full overflow-hidden mb-2" style={{ height: 10, background: '#e2e8f0' }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: `linear-gradient(90deg, #34d399, #60a5fa, ${powerPercent > 80 ? '#f87171' : '#a78bfa'})` }}
-                animate={{ width: `${powerPercent}%` }}
-              />
-            </div>
-
-            <div className="flex justify-between font-medium mb-1" style={{ fontSize: '0.72rem', color: '#64748b' }}>
-              <span>~{(totalWatts / 240).toFixed(2)} A at 240V</span>
-              <span>{totalWatts} / {maxWatts} W</span>
-            </div>
-            <div className="text-center font-bold" style={{ fontSize: '0.75rem', color: '#64748b' }}>
-              ≈ {(totalWatts / 1000).toFixed(2)} kW  |  1 hr = {(totalWatts / 1000).toFixed(2)} kWh
-            </div>
-          </div>
+          <p style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4 }}>
+            Toggle appliances ON to see how much power each uses. Watch the energy meter count up.
+          </p>
         </div>
 
-        <div className="game-panel !p-0 overflow-hidden">
-          <div className="px-4 py-2.5 font-display font-bold text-slate-800 flex items-center gap-2"
-            style={{ background: '#f8fafc', fontSize: '0.95rem', borderBottom: '2px solid #e2e8f0' }}
-          >
-            🎛️ Appliance Controls
+        <div className="px-3 py-3 flex flex-col gap-3">
+          {/* Energy Meter */}
+          <div className="rounded-2xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span style={{ fontSize: '0.85rem' }}>🔄</span>
+              <span className="font-bold text-slate-600" style={{ fontSize: '0.82rem' }}>Energy Meter</span>
+            </div>
+            <motion.div
+              key={Math.floor(kwh * 1000)}
+              className="font-mono font-bold"
+              style={{ fontSize: '2rem', color: '#0f172a', letterSpacing: '-0.02em' }}
+            >
+              {kwh.toFixed(3)} <span style={{ fontSize: '1rem', color: '#64748b' }}>kWh</span>
+            </motion.div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span style={{ fontSize: '0.75rem' }}>⚡</span>
+              <span className="font-bold" style={{ fontSize: '0.78rem', color: totalWatts > 0 ? '#f59e0b' : '#94a3b8' }}>
+                {totalWatts}W total
+              </span>
+            </div>
+            {/* Progress to goal */}
+            <div className="mt-2 rounded-full overflow-hidden" style={{ height: 5, background: '#e2e8f0' }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg,#3b82f6,#06b6d4)' }}
+                animate={{ width: `${Math.min((kwh / TARGET_KWH) * 100, 100)}%` }}
+              />
+            </div>
+            <p style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+              Goal: {TARGET_KWH} kWh — {Math.min(Math.round((kwh / TARGET_KWH) * 100), 100)}% complete
+            </p>
           </div>
-          <div className="p-3 flex flex-col gap-2">
-            {APPLIANCES.map(app => {
-              const on = activeIds.has(app.id);
-              return (
-                <motion.button
-                  key={app.id}
-                  onClick={() => toggleAppliance(app.id)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center justify-between w-full rounded-xl px-3 py-2.5 transition-all border-2"
-                  style={{
-                    background: on ? `${app.color}18` : '#f8fafc',
-                    borderColor: on ? app.color : '#e2e8f0',
-                    boxShadow: on ? `0 0 10px ${app.color}33` : 'none',
-                  }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <motion.span animate={{ scale: on ? [1, 1.3, 1] : 1 }} style={{ fontSize: '1.4rem' }}>
-                      {app.icon}
-                    </motion.span>
-                    <div className="text-left">
-                      <div className="font-display font-bold leading-tight" style={{ fontSize: '0.88rem', color: on ? app.color : '#334155' }}>
-                        {app.name}
+
+          {/* Room sections */}
+          {ROOMS.map(room => (
+            <div key={room.id}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span style={{ fontSize: '0.9rem' }}>{room.icon}</span>
+                <span className="font-bold text-slate-700" style={{ fontSize: '0.88rem' }}>{room.name}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                {room.appliances.map(app => {
+                  const on = switchStates[app.id] ?? false;
+                  return (
+                    <div
+                      key={app.id}
+                      className="flex items-center justify-between px-2.5 py-2 rounded-xl"
+                      style={{ background: on ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${on ? '#86efac' : '#e2e8f0'}` }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: '1.1rem' }}>{app.icon}</span>
+                        <div>
+                          <p className="font-bold" style={{ fontSize: '0.82rem', color: '#334155' }}>{app.name}</p>
+                          <p style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{app.watts}W</p>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{app.watts} W</div>
+                      {/* Toggle switch */}
+                      <button
+                        onClick={() => toggle(app.id)}
+                        className="relative flex-shrink-0 transition-all"
+                        style={{
+                          width: 38,
+                          height: 22,
+                          borderRadius: 11,
+                          background: on ? '#22c55e' : '#d1d5db',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      >
+                        <motion.div
+                          animate={{ x: on ? 17 : 2 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            width: 18,
+                            height: 18,
+                            borderRadius: '50%',
+                            background: 'white',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                          }}
+                        />
+                      </button>
                     </div>
-                  </div>
-                  <div className={`big-switch ${on ? 'on' : ''}`} style={{ flexShrink: 0 }}>
-                    <div className={`big-switch-knob ${on ? 'on' : ''}`} />
-                  </div>
-                </motion.button>
-              );
-            })}
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Stats summary */}
+          <div className="rounded-xl px-3 py-2.5" style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd' }}>
+            <p className="font-bold text-blue-700 mb-1" style={{ fontSize: '0.8rem' }}>💡 Did You Know?</p>
+            <p style={{ fontSize: '0.73rem', color: '#0369a1', lineHeight: 1.4 }}>
+              {onCount === 0 ? 'Turn on appliances to learn about their energy use!'
+               : onCount < 3 ? `${onCount} appliance${onCount > 1 ? 's' : ''} active. Running for 1 hour = ${(totalWatts / 1000).toFixed(3)} kWh.`
+               : `${onCount} appliances use ${totalWatts}W = ${(totalWatts * 24 / 1000).toFixed(1)} kWh per day!`}
+            </p>
           </div>
         </div>
       </div>
 
-      {activeIds.size < APPLIANCES.length && (
+      {/* Hint */}
+      {onCount < 3 && (
         <motion.div
-          className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-none z-20"
+          className="absolute bottom-5 z-20 pointer-events-none"
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 1.3, repeat: Infinity }}
+          style={{ left: 0, right: 'clamp(200px,25vw,280px)', display: 'flex', justifyContent: 'center' }}
         >
           <div
-            className="px-4 py-2.5 rounded-full font-display font-bold text-slate-900 shadow-xl"
-            style={{ background: 'linear-gradient(135deg,#ffd700,#f59e0b)', fontSize: '1rem', boxShadow: '0 0 18px rgba(255,215,0,0.5)' }}
+            className="px-4 py-2.5 rounded-full font-display font-bold text-slate-900"
+            style={{ background: 'linear-gradient(135deg,#ffd700,#f59e0b)', fontSize: '0.95rem', boxShadow: '0 0 18px rgba(255,215,0,0.5)' }}
           >
-            👆 Turn ON all {APPLIANCES.length} appliances to complete!
+            ⚡ Toggle switches to turn appliances ON!
           </div>
         </motion.div>
       )}

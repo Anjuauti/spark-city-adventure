@@ -275,8 +275,8 @@ export const Level4Substation = () => {
       </AnimatePresence>
 
       <div
-        className="absolute right-3 top-14 z-10 flex flex-col gap-3 pointer-events-auto"
-        style={{ width: 'clamp(210px, 23vw, 285px)' }}
+        className="absolute right-3 top-14 bottom-3 z-10 flex flex-col gap-3 pointer-events-auto overflow-y-auto"
+        style={{ width: 'clamp(210px, 23vw, 285px)', paddingBottom: '0.25rem' }}
       >
         <InfoCard title="Substation" icon="🏢" colorClass="from-cyan-700 to-cyan-500">
           <p><strong>Why Step Down?</strong> 132 kV is far too dangerous for homes — it would be lethal!</p>
