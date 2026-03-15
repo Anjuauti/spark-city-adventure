@@ -250,8 +250,8 @@ export const Level2Generator = () => {
       <ACWaveform visible={step >= 3} />
 
       <div
-        className="absolute right-3 top-14 z-10 flex flex-col gap-3 pointer-events-auto"
-        style={{ width: 'clamp(210px, 23vw, 285px)' }}
+        className="absolute right-3 top-14 bottom-3 z-10 flex flex-col gap-3 pointer-events-auto overflow-y-auto"
+        style={{ width: 'clamp(210px, 23vw, 285px)', paddingBottom: '0.25rem' }}
       >
         <AnimatePresence mode="wait">
           <motion.div

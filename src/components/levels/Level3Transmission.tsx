@@ -313,26 +313,23 @@ export const Level3Transmission = () => {
                 <p className="text-amber-600 mt-0.5" style={{ fontSize: '0.78rem' }}>{currentExplanation.formulaNote}</p>
               </div>
 
-              {step < 3 ? (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleContinue}
-                  className="px-8 py-3 rounded-2xl font-display font-bold text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-                    fontSize: '1.05rem',
-                    boxShadow: '0 4px 16px rgba(245,158,11,0.4)',
-                  }}
-                >
-                  Continue → Tap Tower {step + 1}
-                </motion.button>
-              ) : (
-                <div className="text-center">
-                  <span style={{ fontSize: '2rem' }}>🎉</span>
-                  <p className="font-display font-bold text-green-700 mt-1">All towers connected!</p>
-                </div>
-              )}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleContinue}
+                className="px-8 py-3 rounded-2xl font-display font-bold text-white"
+                style={{
+                  background: step < 3
+                    ? 'linear-gradient(135deg, #f59e0b, #fbbf24)'
+                    : 'linear-gradient(135deg, #10b981, #34d399)',
+                  fontSize: '1.05rem',
+                  boxShadow: step < 3
+                    ? '0 4px 16px rgba(245,158,11,0.4)'
+                    : '0 4px 16px rgba(16,185,129,0.4)',
+                }}
+              >
+                {step < 3 ? `Continue → Tap Tower ${step + 1}` : '🎉 See Results!'}
+              </motion.button>
             </motion.div>
           </motion.div>
         )}
