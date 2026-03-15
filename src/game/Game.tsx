@@ -1,52 +1,53 @@
-import { GameProvider, useGame } from './GameContext';
-import VoltGuide from './VoltGuide';
-import StarCounter from './StarCounter';
-import AttractScreen from './screens/AttractScreen';
-import InstructionsScreen from './screens/InstructionsScreen';
-import HydroScene from './scenes/HydroScene';
-import GeneratorScene from './scenes/GeneratorScene';
-import TransmissionScene from './scenes/TransmissionScene';
-import SubstationScene from './scenes/SubstationScene';
-import HomeEntryScene from './scenes/HomeEntryScene';
-import WiringPuzzle from './screens/WiringPuzzle';
-import ConsumptionScreen from './screens/ConsumptionScreen';
-import SmartHomeScreen from './screens/SmartHomeScreen';
-import CelebrationScreen from './screens/CelebrationScreen';
-
-// All levels now have inline Volt in their right panel — no floating Volt needed for game levels
-const LEVELS_WITH_INLINE_VOLT = [
-  'level1-hydro', 'level2-generator', 'level3-transmission', 'level4-substation',
-  'level5-home-entry', 'level6-wiring', 'level7-consumption', 'level8-smart-home',
-];
+import { useGameStore } from '../store/game-store';
+import { GameHUD, VoltGuide, NextLevelButton } from '../components/GameUI';
+import { StartScreen } from '../components/StartScreen';
+import { FinalScreen } from '../components/FinalScreen';
+import { Level1Dam } from '../components/levels/Level1Dam';
+import { Level2Generator } from '../components/levels/Level2Generator';
+import { Level3Transmission } from '../components/levels/Level3Transmission';
+import { Level4Substation } from '../components/levels/Level4Substation';
+import { Level5House } from '../components/levels/Level5House';
+import { Level6Wiring } from '../components/levels/Level6Wiring';
+import { Level7Consumption } from '../components/levels/Level7Consumption';
+import { Level8SmartHome } from '../components/levels/Level8SmartHome';
 
 function GameContent() {
-  const { currentLevel } = useGame();
-  const showFloatingVolt = !LEVELS_WITH_INLINE_VOLT.includes(currentLevel);
+  const { currentLevel } = useGameStore();
 
   return (
-    <div className="w-full h-screen overflow-hidden bg-background relative">
-      {currentLevel === 'attract' && <AttractScreen />}
-      {currentLevel === 'instructions' && <InstructionsScreen />}
-      {currentLevel === 'level1-hydro' && <HydroScene />}
-      {currentLevel === 'level2-generator' && <GeneratorScene />}
-      {currentLevel === 'level3-transmission' && <TransmissionScene />}
-      {currentLevel === 'level4-substation' && <SubstationScene />}
-      {currentLevel === 'level5-home-entry' && <HomeEntryScene />}
-      {currentLevel === 'level6-wiring' && <WiringPuzzle />}
-      {currentLevel === 'level7-consumption' && <ConsumptionScreen />}
-      {currentLevel === 'level8-smart-home' && <SmartHomeScreen />}
-      {currentLevel === 'celebration' && <CelebrationScreen />}
+    <div
+      className="flex items-center justify-center overflow-hidden"
+      style={{ width: '100vw', height: '100vh', background: '#f1f5f9' }}
+    >
+      <div
+        className="relative overflow-hidden bg-white"
+        style={{
+          width: '100%',
+          height: '100%',
+          maxWidth: '1920px',
+          maxHeight: '1080px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+        }}
+      >
+        <GameHUD />
+        <VoltGuide />
+        <NextLevelButton />
 
-      {showFloatingVolt && <VoltGuide />}
-      <StarCounter />
+        {currentLevel === 0 && <StartScreen />}
+        {currentLevel === 1 && <Level1Dam />}
+        {currentLevel === 2 && <Level2Generator />}
+        {currentLevel === 3 && <Level3Transmission />}
+        {currentLevel === 4 && <Level4Substation />}
+        {currentLevel === 5 && <Level5House />}
+        {currentLevel === 6 && <Level6Wiring />}
+        {currentLevel === 7 && <Level7Consumption />}
+        {currentLevel === 8 && <Level8SmartHome />}
+        {currentLevel === 9 && <FinalScreen />}
+      </div>
     </div>
   );
 }
 
 export default function Game() {
-  return (
-    <GameProvider>
-      <GameContent />
-    </GameProvider>
-  );
+  return <GameContent />;
 }

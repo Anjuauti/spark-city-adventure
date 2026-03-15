@@ -16,6 +16,8 @@ export default {
       fontFamily: {
         fredoka: ["Fredoka", "sans-serif"],
         "fredoka-one": ["Fredoka One", "cursive"],
+        display: ["Fredoka One", "cursive"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
