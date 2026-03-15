@@ -13,12 +13,15 @@ import ConsumptionScreen from './screens/ConsumptionScreen';
 import SmartHomeScreen from './screens/SmartHomeScreen';
 import CelebrationScreen from './screens/CelebrationScreen';
 
-// Levels that have Volt integrated in their side panel
-const INLINE_VOLT_LEVELS = ['level5-home-entry', 'level6-wiring', 'level7-consumption', 'level8-smart-home'];
+// All levels now have inline Volt in their right panel — no floating Volt needed for game levels
+const LEVELS_WITH_INLINE_VOLT = [
+  'level1-hydro', 'level2-generator', 'level3-transmission', 'level4-substation',
+  'level5-home-entry', 'level6-wiring', 'level7-consumption', 'level8-smart-home',
+];
 
 function GameContent() {
   const { currentLevel } = useGame();
-  const showFloatingVolt = !INLINE_VOLT_LEVELS.includes(currentLevel);
+  const showFloatingVolt = !LEVELS_WITH_INLINE_VOLT.includes(currentLevel);
 
   return (
     <div className="w-full h-screen overflow-hidden bg-background relative">
